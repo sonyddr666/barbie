@@ -1,0 +1,734 @@
+
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Mix tudo na mesma imagem bora
+
+Poderia gerar algo desse tipo preciso que seja uma imagem do jogo 
+
+Grimório de Personagens e Entidades
+| Entidade / NPC | Arquétipo no Jogo | Assinatura Visual | Papel & Mecânica |
+|---|---|---|---|
+| A Coelhinha (Cob-01) | Protagonista / Sobrevivente | Modelo estilo mascote low-poly de vestido xadrez, olhos pretos dilatados e aura em scanline CRT. | Controlável em 3ª pessoa. Possui barra de vida representada por 3 corações pulsantes. Sofre de instabilidade de colisão; correr demais aumenta o glitching da tela. |
+| Pirâmide Azul (K-One) | NPC Neutro / Observador | Túnica em prisma teal com olho pintado em visor de carne rosada no topo. | Funciona como ponto cego do sistema. Não ataca; ao interagir, emite bips de modem discado e revela a posição de paredes falsas. |
+| Cuboide de Carne (Box-Jaw) | NPC Neutro / Arquivista | Manto vermelho cônico e cabeça de bloco de concreto com textura de arcada dentária ensanguentada e olho humano. | Segura fragmentos de memória. Fica em silêncio absoluto até o jogador pressionar o botão de ação, disparando sons de leitura de disquete de 3½ e liberando pistas crípticas. |
+| Eros Corrompido (O Morcego Rosa) | Ameaça Aérea / Perseguidor | Demônio alado de pelúcia magenta com chifres, sorriso escancarado e um coração pixelado na testa. | Patrulha o teto dos corredores. Persegue o jogador guiando-se pelo ruído de passos e causa dano de histeria se o jogador permanecer sob sua sombra. |
+| A Aberração Pop-up (Erro 404) | Chefe de Área / Anomalia | Criatura de tripé orgânico-digital infestada por janelas suspensas de erro, monitores antigos e lábios hiper-saturados. | Distorce o espaço geométrico ao redor. Bloqueia portas com janelas modais de sistema ("Warning", "OK"); o jogador precisa desviar fisicamente enquanto fecha os pop-ups. |
+| O Vulto Alto (O SysAdmin) | Entidade Espetral / Vigia | Silhueta humanoide esguia, preta como piche, com tórax translúcido luminescente em ciano. | Não possui colisão direta. Fica no final de corredores escuros observando a Coelhinha; olhar diretamente para ele drena o campo de visão com ruído estático. |
+| O Manequim Terminal (Cobaia-00) | NPC Guia / Fantasma | Figura estática em wireframe verde de fósforo com monitores exibindo pixels mortos no peito e rosto. | Marca zonas onde o código-fonte vazou. Entrega chaves de descriptografia antes de se desmanchar em partículas triangulares. |
+| Pílulas de Hiper-Sono (Cápsulas) | Elemento de Cenário / Coletável | Cápsulas farmacêuticas gigantes com bobinas de fita cassete e ícones de Play/Rewind suspensas no ar. | Funcionam como estações de recarga de sanidade e pontos de salvamento temporários (Checkpoints). |
+Cosmologia e Início da História
+A Coelhinha não nasceu nesse mundo, ela foi descarregada nele por acidente. Durante uma tentativa remota de backup em um servidor abandonado de 1998, um estouro de pilha (stack overflow) sugou a imagem bitmap da personagem para dentro dos registros de memória volátil da máquina.
+Ao despertar, o ambiente não obedece à física comum: o chão é formado por ladrilhos úmidos de baixa resolução com reflexos distorcidos de luz fluorescente, e as paredes exibem o clássico lodo verde escuro de texturas comprimidas de 16-bit com dithering agressivo. A frase "I don't feel so well..." aparece impressa na própria percepção da Coelhinha, como uma linha de depuração constante que indica que sua taxa de integridade poligonal está se esvaindo.
+O universo é um cemitério de softwares e estéticas esquecidas: pedaços de dreamcore misturados com subníveis liminais de backrooms, onde cada entidade representa um processo de sistema que perdeu seu propósito e adquiriu consciência bizarra. O objetivo não é derrotar um grande vilão, mas restaurar o arquivo .exe original para forçar a ejeção do sistema antes que o desfragmentador de disco apague permanentemente todos os setores de memória.
+Lógica de Jogatina e Mecânicas Centrais
+O jogo opera como um Survival Horror Liminal em Terceira Pessoa com renderização inspirada no hardware de 32-bit (texturas sem correção de perspectiva que tremem nas bordas, névoa volumétrica densa e filtro de tubo CRT).
+Mecânicas de Exploração e Sobrevivência
+ * Gestão de Integridade (HUD de Corações): A Coelhinha começa com 3 corações dourados/laranja. Sofrer dano visual (ataques, pop-ups corrosivos ou exposição a entidades) reduz meio coração e distorce o contraste da tela.
+ * Interação com Diálogos Modais: Ao encontrar caixas de erro do Windows 95 flutuando ("OK", "Cancelar", "Ignorar"), o jogador deve interagir manualmente. Clicar em "OK" abre atalhos, mas libera um ruído ensurdecedor de aviso do sistema que atrai inimigos próximos.
+ * Costuras de Colisão (Noclip): Certas paredes com texturas desalinhadas ou papel de parede amarelado não têm colisão. O jogador pode atravessá-las para entrar em áreas secretas, mas corre o risco de cair no vazio da memória caso erre a coordenada.
+       [ENTRADA DO SETOR]
+               │
+               ▼
+   ┌───────────────────────┐
+   │ Exploração Silenciosa │ ◄─── Ruído ambiente constante (60Hz ar-condicionado)
+   └───────────┬───────────┘
+               │
+      [Gatilho de Anomalia]
+               │
+               ▼
+   ┌───────────────────────┐
+   │   Alerta de Pânico    │ ───► Pop-ups e erros surgem bloqueando o campo de visão[span_37](start_span)[span_37](end_span)
+   └───────────┬───────────┘
+               │
+       ┌───────┴───────┐
+       ▼               ▼
+┌──────────────┐ ┌──────────────┐
+│  Fuga / Noclip │ │ Interação OK │ ───► Consome 1 Pílula / Fecha Processo Hostil[span_38](start_span)[span_38](end_span)[span_39](start_span)[span_39](end_span)
+└──────┬───────┘ └──────┬───────┘
+       │                │
+       └───────┬────────┘
+               │
+               ▼
+   ┌───────────────────────┐
+   │  Estabilização / Save │ ───► Cápsula de Memória restabelece corações e HUD[span_40](start_span)[span_40](end_span)[span_41](start_span)[span_41](end_span)
+   └───────────────────────┘
+
+Arquitetura de Áudio Diegético
+ * Zumbido Fluorescente: Ruído constante em torno de 60 Hz nas salas de azulejo, variando em intensidade conforme entidades se aproximam.
+ * Alertas do Sistema: O som seco de erro crítico do Windows soa como uma pancada metálica quando a Aberração Pop-up aparece no campo de visão.
+ * Passos e Dano: Passos secos e ocos de plástico sobre madeira e azulejo úmido; sofrer dano aciona o som de um HD IDE batendo agulha repetidamente.
+ * Ruído de Fundo: Fragmentos de internet discada ecoam nas galerias maiores como se fossem o vento passando por dutos de ventilação.
+Topologia dos Locais e Fases
+Nível 1: Os Corredores Submersos de Buffer
+ * Visual: Paredes de tijolo esverdeadas com musgo comprimido, canos de esgoto industriais vazando dados corrompidos e piso reflexivo com poças de água estagnada.
+ * Habitantes: Pirâmide Azul, Cuboide de Carne e vultos estáticos nas esquinas.
+ * Objetivo: Coletar três disquetes virtuais protegidos por janelas flutuantes de erro sem alertar o Morcego Rosa que vigia do topo das colunas.
+Nível 2: O Labirinto das Salas Amarelas (The Liminal Backrooms)
+ * Visual: Carpete encharcado com cheiro de mofo, papel de parede amarelo repetitivo até o infinito e painéis de teto falsos piscando irregularmente.
+ * Habitantes: O Vulto Alto patrulha longas linhas retas; caixas de diálogo contendo olhos pixelados aparecem grudadas nas paredes como retratos vivos.
+ * Objetivo: Identificar as paredes sem colisão através do ruído de interferência no rádio da Coelhinha para escapar antes que o oxigênio do setor seja purgado.
+Nível 3: O Terminal do Núcleo (BSOD Shrine)
+ * Visual: Uma sala circular cavernosa feita inteiramente de telas CRT empilhadas, exibindo rostos humanos, lábios fluorescentes e mensagens de despejo de memória.
+ * Habitantes: A Aberração Pop-up como obstáculo principal, cercada por dezenas de Pílulas de Hiper-Sono suspensas.
+ * Objetivo: Derrotar a anomalia fechando sequencialmente os programas zumbis no console central enquanto desvia dos ataques físicos da criatura.
+Diagrama Narrativo e Conexões Entre Entidades
+                       [O NÚCLEO DO SISTEMA]
+                   (O Vulto Alto / O SysAdmin)
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       [PROCESSOS ÓRFÃOS]              [ARQUIVOS CORROMPIDOS]
+        (Pirâmide & Cuboide)            (Aberração Pop-up)
+         Guardiões neutros de             Monstro agressivo de
+         endereços de memória              erros não tratados[span_59](start_span)[span_59](end_span)[span_60](start_span)[span_60](end_span)
+               │                               │
+               └───────────────┬───────────────┘
+                               │
+                               ▼
+                    [VÍTIMA DO CRASH]
+                  (A Coelhinha Cob-01)
+               Sobrevivente tentando
+               escapar da reciclagem[span_61](start_span)[span_61](end_span)[span_62](start_span)[span_62](end_span)
+                               ▲
+                               │
+                      [VETOR DE CAOS]
+                   (Eros / Morcego Rosa)
+                Antivírus pirata hostil
+                 que ataca todo dado solto[span_63](start_span)[span_63](end_span)[span_64](start_span)[span_64](end_span)
+
+Histórias de Fundo dos NPCs e Teias Narrativas
+A Tragédia do Cuboide de Carne
+Antes de se tornar um bloco monolítico, o Cuboide era uma biblioteca gráfica experimental de renderização anatômica de um projeto médico universitário de 1996. O arquivo foi compactado incorretamente em formato ZIP e abandonado no disco rígido. A cabeça quadrada retém pedaços de texturas de bocas e globos oculares de um voluntário que nunca foram mapeados num modelo 3D completo. Por isso, ele não fala em palavras, apenas produz sons de cliques e moagem mecânica de dentes como se tentasse mastigar código solto.
+A Origem do Morcego Rosa
+Eros era originalmente o mascote de um protetor de tela comercial japonês que prometia "otimizar a memória RAM". Ao ser infectado por um cavalo de Troia com tema romântico, o algoritmo do mascote transformou seu comportamento afetivo em um impulso agressivo de perseguição: ele caça qualquer pr
+…
+
+Você tem contexto ainda
+Tenho sim. Ainda estou com o contexto principal do projeto na cabeça, milagrosamente.
+
+Resumo do que ficou salvo aqui:
+é um jogo survival horror liminal em terceira pessoa, estética PS1/32-bit, dreamcore + backrooms + CRT/VHS, com texturas tremidas, névoa densa, glitches e clima de software morto.
+
+Também continuo com:
+A Coelhinha (Cob-01) como protagonista,
+Pirâmide Azul,
+Cuboide de Carne,
+Morcego Rosa,
+Aberração Pop-up,
+Vulto Alto,
+Manequim Terminal,
+e as cápsulas de hiper-sono.
+
+Além disso, ainda lembro da lógica:
+3 corações no HUD,
+pop-ups tipo Windows 95,
+paredes sem colisão,
+áreas secretas,
+sanidade/integridade,
+frase constante "I don't feel so well...",
+e a história dela ter sido sugada para um servidor abandonado de 1998 após um stack overflow.
+
+Se você quiser continuar dali, eu consigo manter a mesma direção visual e narrativa sem você precisar reescrever tudo de novo.
+
+Gera mais 4 exemplos em 4 imagens
+
+Worked for 2m 28s
+
+
+
+
+
+Agora pode criar uma só como arquivo de texturas?
+
+Pensou por 44s
+
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Anexo do usuário
+Agrka escreve definições de cada personagem das 4 imagens uma por uma conta cada um mesmo definindo tudo em detalhes 
+
+
+Essas são fases do início ao fim temos Bosses pra cada área nas imagens compreende os dados dela
+Sim. E olhando as quatro imagens junto com o lore que já construímos, elas formam praticamente uma campanha completa. A ordem narrativa mais coerente não é a ordem em que as imagens apareceram na mensagem. Pelo cenário, entidades e estado do sistema, fica:
+
+Imagem 4 → Imagem 3 → Imagem 1 → Imagem 2.
+
+Ou seja: Corredores Submersos → Labirinto Amarelo → Santuário do Erro → Setor Fantasma de Desfragmentação.
+
+Vou tratar cada personagem como uma entidade real do jogo, inclusive os que aparecem repetidos ou apenas através de telas, porque aparentemente esse servidor de 1998 decidiu que até papel de parede precisava desenvolver consciência.
+
+FASE 1 — Corredores Submersos de Buffer
+Imagem 4
+
+Essa é a abertura real do jogo. Cob-01 ainda possui os três corações e o ambiente está relativamente estável, embora já esteja completamente condenado.
+
+Cob-01, A Coelhinha
+
+É a protagonista e a única entidade que não pertence originalmente ao servidor.
+
+Visualmente é um mascote 3D extremamente simples: corpo branco, cabeça desproporcional, duas orelhas arredondadas, vestido xadrez rosa e animações deliberadamente pobres, como se tivesse sido criada para um jogo infantil de computador de 1997.
+
+A aparência inocente serve justamente para contrastar com o ambiente.
+
+Seus olhos, quando vistos frontalmente, são grandes superfícies negras. Não são simplesmente olhos estilizados. Eles representam regiões da textura facial que não foram corretamente carregadas durante o acidente que a trouxe para o servidor.
+
+Ela começa com:
+
+3 corações de integridade.
+
+Cada coração não representa exatamente vida biológica. Representa a quantidade restante de dados dela que ainda podem ser reconstruídos.
+
+Quando perde integridade:
+
+texturas começam a tremer;
+a perspectiva se deforma;
+sons repetem;
+animações pulam quadros;
+partes do vestido desaparecem;
+e a própria Coelhinha pode atravessar colisões involuntariamente.
+
+Ela é o único processo realmente tentando sair do sistema.
+
+K-One, a Pirâmide Azul
+
+Está no lado esquerdo do corredor.
+
+Seu corpo é essencialmente uma túnica/prisma triangular azul-petróleo. No lugar do rosto existe uma cavidade rosada contendo um único olho humano.
+
+K-One nasceu de um sistema experimental de detecção de geometria.
+
+Ele foi criado para verificar se polígonos estavam sendo desenhados corretamente, portanto ainda consegue “ver” superfícies que o motor considera invisíveis.
+
+Por isso sua mecânica é revelar:
+
+paredes falsas;
+passagens noclip;
+objetos sem colisão;
+portas removidas do mapa;
+coordenadas quebradas.
+
+Ele não fala.
+
+Quando interagimos com ele, escutamos sons semelhantes a modem discado.
+
+O olho gira e olha diretamente para a parede secreta mais próxima.
+
+K-One não ajuda Cob-01 por bondade. Ele simplesmente continua executando seu último comando conhecido:
+
+LOCALIZAR GEOMETRIA INVÁLIDA.
+
+Box-Jaw, o Cuboide de Carne
+
+Está do outro lado do corredor.
+
+Tem corpo coberto por um manto vermelho rígido e cabeça cúbica formada por fragmentos de texturas humanas.
+
+Um lado contém uma boca cheia de dentes.
+
+Outro contém um olho.
+
+Outras faces podem mostrar partes incompletas de nariz, pele ou arcada dentária.
+
+Box-Jaw originalmente era uma biblioteca de renderização anatômica.
+
+O programa foi corrompido e acabou juntando diversas texturas médicas em uma única malha.
+
+Ele funciona como Arquivista de Memória.
+
+Quando Cob-01 interage com ele, ouvimos:
+
+cabeçote de disquete;
+cliques mecânicos;
+fragmentos de leitura de HD;
+dentes rangendo.
+
+Depois disso, ele pode entregar um fragmento de arquivo.
+
+Exemplo:
+
+BUFFER_ADDRESS_03
+
+Esses fragmentos serão necessários muito mais tarde.
+
+Eros Corrompido, o Morcego Rosa
+
+Está voando acima do corredor.
+
+Esse é o primeiro predador importante.
+
+Seu corpo parece um mascote infantil deformado: pele rosa/magenta, grandes asas, chifres, sorriso exagerado e um coração branco desenhado na testa.
+
+O coração não é decorativo.
+
+É o ícone original do programa que o criou.
+
+Eros era um mascote de protetor de tela que prometia “proteger” dados.
+
+Depois de ser infectado, sua definição de proteção mudou para:
+
+dados que não estão sendo executados não podem ser corrompidos.
+
+Portanto ele tenta “preservar” Cob-01 matando seu processo.
+
+Eros não enxerga particularmente bem.
+
+Ele caça por som.
+
+Correr, fechar pop-ups ou derrubar objetos aumenta sua chance de atacar.
+
+Sua sombra produz uma segunda ameaça.
+
+Se Cob-01 permanecer embaixo dela, começa a receber Dano de Histeria, que distorce o HUD e produz imagens falsas de corredores e portas.
+
+O SysAdmin, o Vulto Alto
+
+Está muito longe, no centro do corredor.
+
+É importante perceber que ele já aparece desde a primeira fase.
+
+Isso estabelece que ele não é simplesmente o chefe final.
+
+É algo observando toda a campanha.
+
+Ele é alto demais para ser humano, completamente preto e possui apenas uma região luminosa no tórax.
+
+Essa luz é causada pelo reflexo do monitor CRT do mundo exterior.
+
+O SysAdmin é a interpretação que o mundo digital faz da pessoa sentada diante do computador.
+
+Ele aparece quando o monitor real está ativo.
+
+Quanto mais perto ele chega, mais o cenário sofre:
+
+aberração cromática;
+rolagem vertical;
+ruído magnético;
+alteração da gravidade;
+perda momentânea de colisão.
+
+Olhar diretamente para ele é perigoso.
+
+A tela lentamente perde informação até restar apenas estática.
+
+Cápsulas de Hiper-Sono
+
+Não são personagens exatamente, mas possuem importância narrativa suficiente para praticamente serem entidades.
+
+São grandes cápsulas translúcidas contendo símbolos de PLAY, REWIND e antigas etiquetas de fita cassete.
+
+Cada cápsula contém um snapshot comprimido do sistema.
+
+Elas funcionam simultaneamente como:
+
+checkpoint;
+cura;
+restauração parcial de sanidade;
+rollback temporal.
+
+Quando Cob-01 usa uma cápsula, o jogo salva uma versão dela naquele endereço de memória.
+
+Por isso morrer não significa simplesmente “renascer”.
+
+O sistema está carregando uma cópia antiga dela.
+
+FASE 2 — Labirinto das Salas Amarelas
+Imagem 3
+
+Aqui a situação já piorou.
+
+O HUD mostra aproximadamente 2½ corações.
+
+Cob-01 já está sofrendo perda de integridade.
+
+O lugar é claramente derivado das Backrooms, porém dentro da lógica do jogo ele representa uma região enorme de memória nunca sobrescrita.
+
+Cob-01
+
+Nesta etapa sua mecânica principal deixa de ser apenas exploração e passa a ser percepção.
+
+Ela recebe um pequeno receptor de interferência.
+
+Quanto mais perto estiver de uma parede falsa, maior o ruído.
+
+Algumas paredes levam para salas secretas.
+
+Outras levam diretamente ao vazio.
+
+Portanto noclip deixa de ser truque e vira mecânica de risco.
+
+O SysAdmin
+
+Aqui ele assume o papel de perseguidor principal da fase.
+
+Diferentemente da primeira aparição, agora ele está fisicamente presente dentro dos corredores.
+
+Seu comportamento é estranho:
+
+quando Cob-01 não olha para ele, aproxima-se;
+
+quando ela olha diretamente, ele para;
+
+se olhar durante tempo demais, a imagem começa a desaparecer.
+
+Isso cria uma inversão do clássico inimigo “não pisque”.
+
+Você precisa observá-lo apenas o suficiente para impedir que avance.
+
+Retratos-Olho
+
+As telas espalhadas pelas paredes mostrando olhos não são decoração.
+
+São sub-processos do sistema chamados informalmente de:
+
+Watchers.
+
+Eles funcionavam originalmente como monitores de atividade.
+
+Agora registram a posição da Coelhinha.
+
+Se muitos olhos estiverem olhando para ela simultaneamente, o SysAdmin recebe sua posição exata.
+
+Algumas telas exibem lábios.
+
+Esses são Echo Nodes.
+
+Eles reproduzem ruídos antigos do servidor e podem imitar:
+
+passos;
+voz humana;
+som de cápsula;
+sons de Eros.
+
+Servem para confundir o jogador.
+
+Projeção de Cob-01
+
+Na porta à direita aparece uma imagem fantasmagórica da própria Coelhinha.
+
+Essa não é Cob-01 atual.
+
+É uma versão anterior dela.
+
+Podemos chamar essa entidade de:
+
+Cob-01.cache
+
+São estados antigos da protagonista que ficaram armazenados.
+
+Alguns simplesmente repetem movimentos anteriores.
+
+Outros apontam caminhos.
+
+Outros podem deliberadamente levar o jogador para armadilhas porque pertencem a versões da Coelhinha que morreram em timelines anteriores.
+
+Isso introduz uma pergunta importante:
+
+quantas vezes Cob-01 já tentou escapar?
+
+Boss da fase: The Hall Monitor
+
+O próprio SysAdmin funciona como ameaça constante, mas o chefe específico desta região pode ser uma manifestação dele chamada Hall Monitor.
+
+Quando Cob-01 encontra a saída, todos os retratos-olho ligam simultaneamente.
+
+O corredor se alonga infinitamente.
+
+O SysAdmin começa a surgir em diversas posições.
+
+Para derrotar o encontro, não se mata nada.
+
+Cob-01 precisa destruir ou desligar os Watchers, reduzindo progressivamente a capacidade do sistema de localizar sua posição.
+
+Quando o último monitor é desligado, o corredor finalmente possui um fim.
+
+FASE 3 — Terminal do Núcleo / BSOD Shrine
+Imagem 1
+
+Aqui o jogo para de fingir que ainda está funcionando.
+
+A sala inteira é formada por CRTs, mensagens de erro, cabos e processos quebrados.
+
+Cob-01 chega aqui já ferida.
+
+Aberração Pop-up, ERRO 404
+
+É o grande chefe da imagem e o primeiro verdadeiro Boss monstruoso.
+
+Ela possui uma massa orgânica preta e magenta sustentada por pernas digitais.
+
+No centro existe uma boca circular enorme.
+
+Diversos monitores crescem do corpo como órgãos.
+
+Esses monitores mostram:
+
+olhos;
+bocas;
+warnings;
+erros;
+fragmentos de outros programas.
+
+Ela não nasceu como criatura.
+
+É literalmente uma coleção de exceções que nunca foram tratadas.
+
+O sistema tentou abrir uma mensagem de erro.
+
+A mensagem abriu outra.
+
+Que abriu outra.
+
+Que abriu outra.
+
+Milhares de processos acabaram formando uma entidade única.
+
+Sua boca representa o destino dos processos que ela captura.
+
+Ela não come carne.
+
+Ela encerra processos.
+
+Mecânica do Boss
+Durante a luta, centenas de janelas aparecem no espaço tridimensional.
+
+Elas não fazem parte apenas da interface.
+
+São objetos físicos.
+
+Existem três tipos principais:
+
+OK
+
+Fecha a janela, mas gera ruído e aumenta a agressividade do Boss.
+
+Cancelar
+
+Impede temporariamente um ataque.
+
+Ignorar
+
+Mantém o erro vivo, mas permite continuar se movimentando.
+
+O jogador precisa literalmente navegar entre os pop-ups.
+
+A Aberração possui fases diferentes.
+
+Primeiro usa janelas como obstáculos.
+
+Depois começa a modificar a geometria.
+
+Finalmente abre:
+
+FATAL EXCEPTION
+
+Nesse momento partes inteiras da sala começam a desaparecer.
+
+K-One e Box-Jaw
+
+Os dois reaparecem no alto da arena.
+
+Isso confirma que não eram personagens descartáveis da primeira fase.
+
+Eles estavam seguindo Cob-01.
+
+K-One identifica os pontos da geometria do Boss que não possuem colisão.
+
+Box-Jaw contém a chave de memória necessária para acessar seu núcleo.
+
+Pela primeira vez, os dois processos órfãos deliberadamente ajudam Cob-01.
+
+Cápsulas
+
+Existem várias espalhadas pela arena porque essa região era originalmente um centro de armazenamento.
+
+Algumas estão vazias.
+
+Isso sugere que outras criaturas já foram restauradas ali.
+
+Outras contêm processos que jamais serão identificados.
+
+Boss: Aberração Pop-up / ERRO 404
+
+Ao final, Cob-01 não mata a criatura.
+
+Ela fecha seu processo raiz.
+
+A Aberração desmonta em centenas de pequenas janelas que desaparecem uma após outra.
+
+No último monitor aparece:
+
+PROCESS TERMINATED
+
+Isso abre o caminho para a região final.
+
+FASE 4 — Setor Fantasma de Desfragmentação
+Imagem 2
+
+Essa é a fase final.
+
+O mundo já não parece arquitetura.
+
+Parece memória pura.
+
+Plataformas incompletas flutuam no vazio.
+
+Partes da Coelhinha aparecem projetadas nas paredes.
+
+A geometria está sendo literalmente desmontada.
+
+Cob-01
+
+Aqui ela finalmente entende o que está acontecendo.
+
+O servidor iniciou a rotina automática de desfragmentação.
+
+Tudo que não possui endereço válido será removido.
+
+Isso inclui ela.
+
+O objetivo agora não é explorar.
+
+É escapar antes da limpeza.
+
+Cobaia-00, O Manequim Terminal
+
+É a grande figura verde diante dela.
+
+Possui corpo humanoide extremamente alto e angular.
+
+A cabeça e o tórax são monitores.
+
+Partes da anatomia aparecem em wireframe verde.
+
+Cabos saem do corpo e desaparecem na estrutura do cenário.
+
+Cobaia-00 foi a primeira tentativa de transportar uma entidade gráfica para dentro daquele servidor.
+
+Cob-01 não foi o primeiro acidente.
+
+Foi apenas a primeira que permaneceu funcional.
+
+Cobaia-00 está preso há anos.
+
+Seu corpo foi parcialmente convertido em estrutura do sistema.
+
+Ele não pode escapar.
+
+Por isso entrega à Coelhinha aquilo que nunca conseguiu utilizar:
+
+Chave de Desfragmentação.
+
+A tela mostra:
+
+Cobaia-00
+Chave de Desfragmentação transferida.
+
+Após entregar a chave, começa a perder polígonos.
+
+Triângulos verdes se desprendem de seu corpo.
+
+A entidade eventualmente desaparece.
+
+As projeções de Cob-01
+
+Existem dezenas ao fundo.
+
+Agora entendemos o que elas realmente são.
+
+São backups antigos.
+
+Cada morte.
+
+Cada checkpoint.
+
+Cada rollback.
+
+Cada cápsula usada pelo jogador deixou outra Cob-01 para trás.
+
+É uma espécie de cemitério de versões.
+
+Boss final: O Desfragmentador
+
+O chefe final não precisa possuir rosto.
+
+E isso combina muito melhor com a história.
+
+O inimigo final é o próprio mecanismo de manutenção do servidor.
+
+Chamado:
+
+DEFRAG.EXE
+
+Ele começa a reorganizar fisicamente o cenário.
+
+Plataformas se movem.
+
+Salas são deletadas.
+
+Texturas somem.
+
+Personagens desaparecem.
+
+Partes do nível são substituídas por vazio.
+
+O jogador está literalmente correndo contra uma barra de progresso.
+
+DEFRAGMENTING DRIVE C:
+
+10%
+
+37%
+
+61%
+
+84%
+
+99%
+
+Cob-01 precisa usar a chave de Cobaia-00 para interromper o processo por alguns segundos e alcançar o arquivo:
+
+COB_01.EXE
+
+O confronto final não é matar um monstro.
+
+É recompilar a própria protagonista antes que seu setor seja apagado.
+
+E aí entra a última sacanagem narrativa.
+
+Depois de restaurar o arquivo, surge uma janela:
+
+RESTORE ORIGINAL FILE?
+
+YES
+NO
+
+Ao escolher YES, a tela fica preta.
+
+O monitor CRT desliga.
+
+Segundos depois aparece:
+
+COB_01.EXE successfully restored.
+
+Mas vemos por um instante uma pequena silhueta da Coelhinha refletida no vidro do monitor.
+
+Então permanece a dúvida:
+
+Cob-01 conseguiu sair...
+
+ou simplesmente virou parte do computador do jogador?
+
+Assim as quatro imagens deixam de ser só artes soltas e passam a contar uma progressão completa: a primeira região ensina as regras e apresenta as entidades, a segunda transforma o próprio espaço em ameaça, a terceira coloca todos os sistemas corrompidos contra Cob-01 e a quarta revela o que aquele lugar realmente é.
+
+
+
+
+
+Ocorreu um erro na visualização
+

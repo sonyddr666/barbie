@@ -1,0 +1,73 @@
+const { test, expect } = require('@playwright/test');
+
+test('setor 3D: colisão, escadaria, memória, rollback, persistência e final', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => { errors.push(e.message); console.log('Browser error:', e.message); });
+  page.on('console', msg => { if (msg.type() === 'error') console.log(msg.text()); });
+  await page.goto('/?test');
+  await page.waitForFunction(() => window.__PALACE_TEST__, null, { timeout: 12000 });
+  await page.screenshot({ path: 'C:/Users/larri/AppData/Local/Temp/opencode/palace-menu.png' });
+  await page.locator('#play').click();
+  await expect(page.locator('#overlay')).toBeHidden();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'C:/Users/larri/AppData/Local/Temp/opencode/palace-game.png' });
+  // Manual stepping while the ordinary animation loop is paused keeps collision checks deterministic.
+  await page.evaluate(() => { const t = window.__PALACE_TEST__; t.teleport(0, 0, 13); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS' })); for (let i = 0; i < 40; i++) t.step(.04); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyS' })); });
+  expect((await page.evaluate(() => window.__PALACE_TEST__.state())).player[2]).toBeLessThan(13.8);
+  await page.evaluate(() => { const t = window.__PALACE_TEST__; t.teleport(-9, 0, 11.7); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' })); for (let i = 0; i < 76; i++) t.step(.04); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' })); });
+  const upper = await page.evaluate(() => window.__PALACE_TEST__.state());
+  console.log('Upper route:', upper);
+  expect(upper.player[1]).toBeCloseTo(3.2, 1);
+  expect(upper.zone).toBe('PASSARELA SUPERIOR');
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(-5.4, 0, 7); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#dialogTitle')).toContainText('K-ONE');
+  await page.locator('#dialogButtons button').click();
+  // The secret has no collision, allowing an actual traversal from the yellow room.
+  await page.evaluate(() => { const t = window.__PALACE_TEST__; t.teleport(-26, 0, -6.6); window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' })); for (let i = 0; i < 25; i++) t.step(.04); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' })); });
+  expect((await page.evaluate(() => window.__PALACE_TEST__.state())).player[2]).toBeLessThan(-8.5);
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(-22, 0, -2); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#count')).toHaveText('1 / 3');
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(3.8, 0, 8.5); window.__PALACE_TEST__.interact(); });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hyper-sleep-save-v1')).disks)).toEqual(['yellow']);
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(10, 3.2, 5.5); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#count')).toHaveText('2 / 3');
+  for (let i = 0; i < 6; i++) await page.evaluate(() => window.__PALACE_TEST__.damage());
+  await expect(page.locator('#dialogTitle')).toContainText('ROLLBACK');
+  await page.locator('#dialogButtons button').click();
+  await expect(page.locator('#count')).toHaveText('1 / 3');
+  await page.reload();
+  await page.waitForFunction(() => window.__PALACE_TEST__);
+  await expect(page.locator('#continueInfo')).toContainText('1 / 3');
+  await page.locator('#play').click();
+  await expect(page.locator('#count')).toHaveText('1 / 3');
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(10, 3.2, 5.5); window.__PALACE_TEST__.interact(); });
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(-31, 0, -20.5); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#count')).toHaveText('3 / 3');
+  expect((await page.evaluate(() => window.__PALACE_TEST__.state())).gate).toBe(true);
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(0, 0, -39.2); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#dialogTitle')).toHaveText('RESTORE ORIGINAL FILE?');
+  await page.getByRole('button', { name: 'Restaurar arquivo' }).click();
+  await expect(page.locator('#menuDescription')).toContainText('successfully restored');
+  expect(errors).toEqual([]);
+  console.log('Render:', await page.evaluate(() => window.__PALACE_TEST__.scene()));
+});
+
+test('janela de erro, vigilância e captura de tela do Arquivo Morto', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/?test');
+  await page.waitForFunction(() => window.__PALACE_TEST__);
+  await page.locator('#play').click();
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(20, 0, 5); });
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: 'C:/Users/larri/AppData/Local/Temp/opencode/palace-archive.png' });
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(-4, 0, -18); window.__PALACE_TEST__.interact(); });
+  await expect(page.locator('#toast')).toContainText('WATCHER OFFLINE');
+  await page.evaluate(() => { window.__PALACE_TEST__.teleport(1.2, 0, -22); window.__PALACE_TEST__.interact(); });
+  await page.getByRole('button', { name: 'OK', exact: true }).click();
+  await page.waitForTimeout(700);
+  expect((await page.evaluate(() => window.__PALACE_TEST__.state())).noise).toBeGreaterThan(50);
+  await expect(page.locator('#noiseState')).toHaveText('DETECTADO');
+  await page.screenshot({ path: 'C:/Users/larri/AppData/Local/Temp/opencode/palace-corridor.png' });
+  expect(errors).toEqual([]);
+});

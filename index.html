@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07100f">
+  <title>HYPER-SLEEP — The Palace</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="inventory.css">
+</head>
+<body>
+  <div id="game"></div>
+  <div id="crt" aria-hidden="true"></div>
+  <div id="damage" aria-hidden="true"></div>
+  <header id="hud" class="hidden">
+    <div class="identity"><span class="eyebrow">HYPER-SLEEP / SUBJECT 01</span><div id="hearts" aria-label="Integridade"></div><span id="integrity">INTEGRIDADE ESTÁVEL</span></div>
+    <div class="sector"><span class="eyebrow">THE PALACE</span><span id="zone">ÁTRIO DE BUFFER</span><span class="build">SECTOR 01 · EXPLORABLE BUILD</span></div>
+  </header>
+  <aside id="mission" class="hidden"><span class="eyebrow">RECONSTRUIR A SAÍDA</span><div>Recupere os disquetes <b id="count">0 / 3</b></div><p id="objective">Procure K-One perto da água.</p><div class="noise-label"><span>RUÍDO DO PROCESSO</span><span id="noiseState">SILENCIOSO</span></div><div class="meter"><i id="noiseBar"></i></div></aside>
+  <div id="hint" class="hidden"><kbd>E</kbd><span></span></div>
+  <div id="toast" role="status"></div>
+  <div id="subtitle"></div>
+  <div id="bottom" class="hidden"><span><kbd>WASD</kbd> mover <kbd>ESPAÇO</kbd> pular <kbd>CTRL / C</kbd> agachar <kbd>SHIFT</kbd> correr <kbd>E</kbd> pegar</span><span><kbd>I</kbd> inventário <kbd>M</kbd> mapa <kbd>ESC</kbd> pausa</span></div>
+  <div id="mapPanel" class="hidden"><span class="eyebrow">BUFFER TOPOLOGY // TABULA 01</span><h2>Mapa do setor</h2><canvas id="map" width="360" height="420"></canvas><p><span class="dot pink"></span> você <span class="dot gold"></span> memória <span class="dot cyan"></span> checkpoint</p><small>K-One conhece uma passagem que o mapa esqueceu.</small></div>
+  <section id="overlay">
+    <div class="menu-art"></div>
+    <div class="menu-content">
+      <div class="bootline"><span class="status-dot"></span> CONNECTION ESTABLISHED / SERVER 1998</div>
+      <span class="menu-kicker">UM LUGAR PARA TUDO QUE FOI ESQUECIDO.</span>
+      <h1>HYPER<span>—</span>SLEEP</h1><div class="palace-title">THE PALACE</div>
+      <p id="menuDescription">Você é Cob-01. Seu backup caiu em um servidor que nunca desligou.<br>Recupere três fragmentos de memória. Encontre uma saída.<br>E, se ouvir asas, diminua o passo.</p>
+      <button id="play">DESPERTAR NO BUFFER <span>↗</span></button>
+      <div class="menu-controls"><span>WASD · MOVIMENTO</span><span>MOUSE · CÂMERA</span><span>E · INTERAÇÃO</span></div>
+      <a class="editor-link" href="editor.html">◈ ABRIR PALACE ENGINE / EDITOR DE MAPAS ↗</a>
+      <div id="continueInfo"></div>
+      <div class="menu-footer"><span>COB_01.EXE / INTEGRIDADE 3.0</span><span>PRIMEIRA VERSÃO JOGÁVEL</span></div>
+    </div>
+  </section>
+  <section id="dialog" class="hidden" role="dialog" aria-modal="true"><div class="window-title"><span id="dialogTitle">MEMORY PROCESS</span><span>×</span></div><div class="window-body"><div id="portrait">◈</div><p id="dialogText"></p></div><div id="dialogButtons"></div></section>
+  <div id="loading">INICIALIZANDO GEOMETRIA...</div>
+  <script type="module" src="game.js"></script>
+  <script>if(location.protocol==='file:'){document.getElementById('loading').textContent='Abra JOGAR.cmd para iniciar o jogo no navegador.'}</script>
+</body>
+</html>

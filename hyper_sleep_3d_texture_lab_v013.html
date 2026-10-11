@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HYPER-SLEEP // 3D TEXTURE LAB</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020309;font-family:Consolas,monospace;color:#dff}
+canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+#leftHud{position:absolute;left:18px;top:16px}
+#name{font-size:12px;letter-spacing:2px;color:#8af8ff;text-shadow:0 0 8px #00cfff}
+#hearts{font-size:30px;color:#ff8a00;text-shadow:0 0 10px #ff3c00;margin-top:6px}
+#state{font-size:11px;opacity:.78}
+#build{position:absolute;right:18px;top:16px;border:1px solid #ff39c8;color:#ff79de;background:#170015cc;padding:8px 10px;font-size:11px;letter-spacing:2px}
+#controls{position:absolute;left:18px;bottom:18px;border:1px solid #00d8e6;background:#001018cc;padding:10px 12px;font-size:11px;line-height:1.55}
+#aim{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px}
+#aim:before,#aim:after{content:"";position:absolute;background:#aef}
+#aim:before{left:6px;top:0;width:2px;height:14px}
+#aim:after{left:0;top:6px;width:14px;height:2px}
+
+#toolbar{position:fixed;right:14px;bottom:14px;z-index:20;display:flex;gap:8px;pointer-events:auto}
+button,.btn{font-family:inherit;border:1px solid #23dfe7;background:#00151b;color:#dfffff;padding:9px 12px;cursor:pointer}
+button:hover,.btn:hover{background:#07323a}
+.hot{border-color:#ff3fc8;color:#ff9ae8;background:#24001f}
+
+#editor{position:fixed;right:14px;top:70px;width:360px;max-height:calc(100vh - 100px);overflow:auto;background:#050812ee;border:1px solid #22dfe8;
+box-shadow:0 0 30px #00ffff1c;z-index:30;padding:12px;display:none}
+#editor h3{margin:0 0 10px;font-size:14px;color:#7ff9ff}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0;flex-wrap:wrap}
+label{font-size:11px;color:#bfe}
+input[type=file]{width:100%;font-size:11px}
+input[type=range]{width:100%}
+select{background:#071119;color:#dff;border:1px solid #1ac7d0;padding:6px}
+#cropWrap{position:relative;width:100%;aspect-ratio:1;background:#000;border:1px solid #223;overflow:hidden}
+#srcCanvas{width:100%;height:100%;display:block;touch-action:none}
+#cropFrame{position:absolute;border:2px solid #ff39c8;box-shadow:0 0 20px #ff00bb55;left:60px;top:60px;width:200px;height:200px;pointer-events:none}
+#cropFrame.oval{border-radius:50%}
+.small{font-size:10px;opacity:.72;line-height:1.4}
+#selected{font-size:11px;color:#ff9de9}
+.scan{position:fixed;inset:0;pointer-events:none;z-index:40;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);mix-blend-mode:screen}
+.vig{position:fixed;inset:0;pointer-events:none;z-index:41;box-shadow:inset 0 0 110px #000,inset 0 0 260px #000}
+#start{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,#0a1724 0,#03040a 48%,#000 100%)}
+#startCard{width:min(580px,92vw);padding:24px;border:1px solid #22dfe8;background:#001018e6;box-shadow:0 0 55px #00ffff20;text-align:center}
+#startCard h1{margin:0 0 8px;font-size:21px;letter-spacing:3px}
+#startCard p{font-size:12px;opacity:.76;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div id="start">
+  <div id="startCard">
+    <h1>HYPER-SLEEP // 3D TEXTURE LAB</h1>
+    <p>Protótipo 3D com cenário texturizado, iluminação neon, personagem em terceira pessoa e inseridor de texturas dentro do próprio app.</p>
+    <button class="hot" id="enter">ENTRAR NO SETOR</button>
+    <p>WASD mover · mouse olhar · SHIFT correr · clique central mira · T abre editor de textura</p>
+  </div>
+</div>
+
+<div id="hud">
+  <div id="leftHud">
+    <div id="name">COB-01 // BUFFER TEST SECTOR</div>
+    <div id="hearts">♥ ♥ ♥</div>
+    <div id="state">INTEGRIDADE: ESTÁVEL</div>
+  </div>
+  <div id="build">DEV BUILD 0.13</div>
+  <div id="controls">WASD mover<br>SHIFT correr<br>MOUSE câmera<br>T editor de textura<br>R resetar</div>
+  <div id="aim"></div>
+</div>
+
+<div id="toolbar">
+  <button id="toggleEditor" class="hot">TEXTURAS [T]</button>
+</div>
+
+<div id="editor">
+  <h3>INSERIDOR DE TEXTURAS</h3>
+  <div id="selected">Objeto selecionado: nenhum</div>
+  <div class="row"><input type="file" id="file" accept="image/*"></div>
+
+  <div class="row">
+    <label>Recorte</label>
+    <select id="shape">
+      <option value="rect">Quadrado / Retângulo</option>
+      <option value="oval">Oval / Círculo</option>
+    </select>
+    <select id="fit">
+      <option value="cover">Preencher</option>
+      <option value="contain">Encaixar</option>
+      <option value="stretch">Esticar</option>
+    </select>
+  </div>
+
+  <div id="cropWrap">
+    <canvas id="srcCanvas" width="512" height="512"></canvas>
+    <div id="cropFrame"></div>
+  </div>
+
+  <div class="row"><label>Zoom</label><input id="zoom" type="range" min="0.5" max="4" step="0.01" value="1"></div>
+  <div class="row"><label>Rotação</label><input id="rot" type="range" min="-180" max="180" step="1" value="0"></div>
+  <div class="row"><label>Repetição X</label><input id="repX" type="range" min="1" max="12" step="1" value="1"></div>
+  <div class="row"><label>Repetição Y</label><input id="repY" type="range" min="1" max="12" step="1" value="1"></div>
+
+  <div class="row">
+    <button id="apply" class="hot">APLICAR NO OBJETO</button>
+    <button id="applyFloor">APLICAR NO CHÃO</button>
+    <button id="applyWall">APLICAR NA PAREDE TESTE</button>
+  </div>
+  <div class="small">Clique num objeto 3D para selecioná-lo. Depois importe uma imagem, arraste a foto dentro do quadro e aplique. O recorte oval cria transparência fora da elipse.</div>
+</div>
+
+<div class="scan"></div><div class="vig"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x02030a);
+scene.fog=new THREE.FogExp2(0x03050c,.018);
+
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,260);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.18;
+document.body.prepend(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0x243a58,0x020202,.5));
+const moon=new THREE.DirectionalLight(0x91b4ff,.75);
+moon.position.set(-10,18,12);moon.castShadow=true;scene.add(moon);
+
+// ---------- procedural texture helpers ----------
+function canvasTexture(draw, size=512){
+  const c=document.createElement('canvas');c.width=c.height=size;
+  const x=c.getContext('2d'); draw(x,size);
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.anisotropy=8;
+  return t;
+}
+function noise(x,w,h,amount=22){
+  const img=x.getImageData(0,0,w,h),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const n=(Math.random()-.5)*amount;
+    d[i]+=n; d[i+1]+=n; d[i+2]+=n;
+  }
+  x.putImageData(img,0,0);
+}
+const texFloor=canvasTexture((x,s)=>{
+  x.fillStyle='#111820';x.fillRect(0,0,s,s);
+  x.strokeStyle='#283642';x.lineWidth=3;
+  for(let i=0;i<=s;i+=64){x.beginPath();x.moveTo(i,0);x.lineTo(i,s);x.stroke();x.beginPath();x.moveTo(0,i);x.lineTo(s,i);x.stroke()}
+  for(let i=0;i<45;i++){x.fillStyle=`rgba(${40+Math.random()*35},${55+Math.random()*35},${60+Math.random()*45},.35)`;x.fillRect(Math.random()*s,Math.random()*s,8+Math.random()*45,2+Math.random()*9)}
+  noise(x,s,s,28);
+});
+texFloor.repeat.set(18,18);
+
+const texWall=canvasTexture((x,s)=>{
+  x.fillStyle='#17231e';x.fillRect(0,0,s,s);
+  for(let y=0;y<s;y+=64){
+    for(let xx=0;xx<s;xx+=128){
+      x.fillStyle=(Math.floor(y/64)%2===0)?'#26372f':'#203029';
+      x.fillRect(xx+(Math.floor(y/64)%2?64:0),y,118,54);
+    }
+  }
+  x.fillStyle='rgba(50,85,63,.6)';
+  for(let i=0;i<120;i++)x.fillRect(Math.random()*s,Math.random()*s,2+Math.random()*12,2+Math.random()*30);
+  noise(x,s,s,35);
+});
+texWall.repeat.set(2.2,2.2);
+
+const texMetal=canvasTexture((x,s)=>{
+  const g=x.createLinearGradient(0,0,s,0);g.addColorStop(0,'#111820');g.addColorStop(.5,'#394752');g.addColorStop(1,'#0b1016');x.fillStyle=g;x.fillRect(0,0,s,s);
+  x.strokeStyle='#4c5c66';x.lineWidth=3;
+  for(let i=0;i<s;i+=48){x.beginPath();x.moveTo(i,0);x.lineTo(i,s);x.stroke()}
+  noise(x,s,s,24);
+});
+texMetal.repeat.set(3,1);
+
+const floorMat=new THREE.MeshStandardMaterial({map:texFloor,color:0xffffff,roughness:.36,metalness:.42});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(180,180),floorMat);
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.userData.name='Chão';scene.add(floor);
+
+const grid=new THREE.GridHelper(180,90,0x13e8e8,0x062f38);
+grid.material.opacity=.16;grid.material.transparent=true;grid.position.y=.016;scene.add(grid);
+
+const wallMat=new THREE.MeshStandardMaterial({map:texWall,color:0xffffff,roughness:.82,metalness:.08});
+const metalMat=new THREE.MeshStandardMaterial({map:texMetal,color:0xffffff,roughness:.42,metalness:.68});
+
+function addBox(name,x,y,z,sx,sy,sz,mat=wallMat){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat.clone());
+  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;m.userData.name=name;scene.add(m);return m;
+}
+
+const selectable=[];
+
+// ---------- actual corridor ----------
+for(let z=-10;z>-104;z-=14){
+  selectable.push(addBox('Parede esquerda',-12,3,z,3.2,6,10));
+  selectable.push(addBox('Parede direita',12,3,z,3.2,6,10));
+  const beam=addBox('Viga metálica',0,7,z,22,1,1.4,metalMat);selectable.push(beam);
+}
+const testWall=addBox('Parede de textura',-4,2.6,-16,6.5,5.2,.5);selectable.push(testWall);
+
+// pipes
+for(let i=0;i<7;i++){
+  const p=new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,14,14),metalMat.clone());
+  p.rotation.z=Math.PI/2;p.position.set(0,5.4,-8-i*13);p.castShadow=true;p.userData.name='Tubulação';scene.add(p);selectable.push(p);
+}
+
+// broken blocks
+for(let i=0;i<22;i++){
+  const x=(Math.random()>.5?1:-1)*(6.5+Math.random()*4);
+  const z=-6-Math.random()*86;
+  const h=.5+Math.random()*2.3;
+  selectable.push(addBox('Bloco quebrado',x,h/2,z,.8+Math.random()*2.5,h,.8+Math.random()*2.5,metalMat));
+}
+
+// puddle decals
+function puddle(x,z,sx,sz,c){
+  const mat=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.11,depthWrite:false});
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(sx,sz),mat);
+  p.rotation.x=-Math.PI/2;p.position.set(x,.022,z);scene.add(p);
+}
+puddle(-5,-8,8,5,0x00ffff);puddle(6,-24,7,4,0xff20c8);puddle(-5,-43,8,6,0x6d55ff);puddle(5,-63,8,5,0x00ffb0);
+
+// neons
+function neonBar(x,y,z,len,c,rz=0){
+  const mat=new THREE.MeshStandardMaterial({color:0x0a0a0a,emissive:c,emissiveIntensity:8,roughness:.2});
+  const m=new THREE.Mesh(new THREE.BoxGeometry(len,.14,.14),mat);
+  m.position.set(x,y,z);m.rotation.z=rz;scene.add(m);
+  const l=new THREE.PointLight(c,38,22,2);l.position.set(x,y-.5,z);scene.add(l);
+}
+neonBar(-7,8,-8,6,0x00eaff,.14);
+neonBar(7,10,-20,7,0xff22cc,-.2);
+neonBar(-8,12,-35,8,0x705cff,.1);
+neonBar(8,9,-52,7,0x00ffb0,-.12);
+neonBar(0,14,-72,11,0xff22cc,.05);
+
+// floating rings + triangles
+for(let i=0;i<10;i++){
+  const geo=new THREE.TorusGeometry(1.0+Math.random()*1.2,.05,8,36);
+  const c=i%2?0xff28c9:0x00eaff;
+  const mat=new THREE.MeshStandardMaterial({color:0x050505,emissive:c,emissiveIntensity:5});
+  const m=new THREE.Mesh(geo,mat);
+  m.position.set((Math.random()-.5)*30,6+Math.random()*12,-8-Math.random()*75);
+  m.rotation.set(Math.random(),Math.random(),Math.random());scene.add(m);
+}
+for(let i=0;i<18;i++){
+  const shape=new THREE.Shape();shape.moveTo(0,1);shape.lineTo(.9,-.7);shape.lineTo(-.9,-.7);shape.closePath();
+  const geo=new THREE.ShapeGeometry(shape);
+  const c=i%2?0x00eaff:0xff2cc8;
+  const mat=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:.5,side:THREE.DoubleSide});
+  const m=new THREE.Mesh(geo,mat);m.position.set((Math.random()-.5)*22,4+Math.random()*12,-8-Math.random()*82);
+  m.rotation.set(Math.random(),Math.random(),Math.random());m.scale.setScalar(.3+Math.random()*.8);scene.add(m);
+}
+
+// ---------- capsule prop ----------
+function capsule(x,z,colorA,colorB){
+  const g=new THREE.Group();
+  const glass=new THREE.Mesh(
+    new THREE.CapsuleGeometry(.65,1.9,10,24),
+    new THREE.MeshPhysicalMaterial({color:0xffffff,transparent:true,opacity:.22,roughness:.05,metalness:.05,transmission:.65,thickness:.25})
+  );
+  glass.position.y=1.4;g.add(glass);
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,1.1,24),new THREE.MeshStandardMaterial({color:colorA,emissive:colorA,emissiveIntensity:2.2}));
+  core.position.set(0,.8,0);g.add(core);
+  const top=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,1.0,24),new THREE.MeshStandardMaterial({color:colorB,emissive:colorB,emissiveIntensity:1.2}));
+  top.position.set(0,1.8,0);g.add(top);
+  const tri=new THREE.Mesh(new THREE.ConeGeometry(.36,.6,3),new THREE.MeshBasicMaterial({color:0xff4828}));
+  tri.rotation.z=Math.PI/2;tri.position.set(0,1.5,.62);g.add(tri);
+  const l=new THREE.PointLight(colorA,10,7,2);l.position.set(0,1.4,0);g.add(l);
+  g.position.set(x,0,z);g.userData.name='Cápsula Hyper-Sleep';scene.add(g);
+  g.traverse(o=>{if(o.isMesh){o.userData.name='Cápsula Hyper-Sleep';selectable.push(o)}})
+}
+capsule(6,-12,0x00ffd5,0xff2c59);
+capsule(-7,-31,0x7b5cff,0xff2cc8);
+
+// ---------- Cob-01 ----------
+const bunny=new THREE.Group();scene.add(bunny);bunny.position.set(0,0,5);
+const white=new THREE.MeshStandardMaterial({color:0xf2eef0,roughness:.75});
+const pink=new THREE.MeshStandardMaterial({color:0xff91b7,roughness:.68});
+const black=new THREE.MeshStandardMaterial({color:0x030303,roughness:.3});
+
+const dressTex=canvasTexture((x,s)=>{
+  x.fillStyle='#ff82ad';x.fillRect(0,0,s,s);
+  x.strokeStyle='#ffd7e5';x.lineWidth=18;
+  for(let i=0;i<s;i+=96){x.beginPath();x.moveTo(i,0);x.lineTo(i,s);x.stroke();x.beginPath();x.moveTo(0,i);x.lineTo(s,i);x.stroke()}
+  x.strokeStyle='#d94c84';x.lineWidth=8;
+  for(let i=48;i<s;i+=96){x.beginPath();x.moveTo(i,0);x.lineTo(i,s);x.stroke();x.beginPath();x.moveTo(0,i);x.lineTo(s,i);x.stroke()}
+});
+dressTex.wrapS=dressTex.wrapT=THREE.RepeatWrapping;
+const dressMat=new THREE.MeshStandardMaterial({map:dressTex,roughness:.72});
+
+function part(geo,mat,x,y,z,parent=bunny){
+  const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;
+}
+
+part(new THREE.SphereGeometry(.48,18,14),white,0,1.35,0).scale.set(.95,1.1,.8);
+part(new THREE.CylinderGeometry(.33,.74,.98,12),dressMat,0,.92,0);
+part(new THREE.CylinderGeometry(.34,.43,.64,12),dressMat,0,1.5,0);
+const legL=part(new THREE.CapsuleGeometry(.12,.42,4,10),white,-.22,.32,0);
+const legR=part(new THREE.CapsuleGeometry(.12,.42,4,10),white,.22,.32,0);
+part(new THREE.SphereGeometry(.16,12,9),white,-.22,.07,-.08).scale.set(1.15,.62,1.65);
+part(new THREE.SphereGeometry(.16,12,9),white,.22,.07,-.08).scale.set(1.15,.62,1.65);
+const armL=part(new THREE.CapsuleGeometry(.105,.42,4,10),white,-.52,1.47,0);armL.rotation.z=.22;
+const armR=part(new THREE.CapsuleGeometry(.105,.42,4,10),white,.52,1.47,0);armR.rotation.z=-.22;
+part(new THREE.SphereGeometry(.68,20,16),white,0,2.3,0).scale.set(1.04,.96,.92);
+part(new THREE.CapsuleGeometry(.18,.66,4,10),white,-.26,3.08,0);
+part(new THREE.CapsuleGeometry(.18,.66,4,10),white,.26,3.08,0);
+part(new THREE.CapsuleGeometry(.074,.48,4,10),pink,-.26,3.1,-.13);
+part(new THREE.CapsuleGeometry(.074,.48,4,10),pink,.26,3.1,-.13);
+
+// face front = -Z
+part(new THREE.SphereGeometry(.16,14,10),black,-.23,2.34,-.59);
+part(new THREE.SphereGeometry(.16,14,10),black,.23,2.34,-.59);
+part(new THREE.SphereGeometry(.045,10,8),black,0,2.12,-.64);
+const cheekMat=new THREE.MeshBasicMaterial({color:0xff6d9a,transparent:true,opacity:.62});
+part(new THREE.SphereGeometry(.11,10,8),cheekMat,-.42,2.12,-.55).scale.set(1.5,.65,.28);
+part(new THREE.SphereGeometry(.11,10,8),cheekMat,.42,2.12,-.55).scale.set(1.5,.65,.28);
+
+const aura=new THREE.PointLight(0xff4ecb,6,5,2);aura.position.set(0,1.8,0);bunny.add(aura);
+
+// ---------- SysAdmin ----------
+const sys=new THREE.Group();scene.add(sys);sys.position.set(0,0,-58);
+const smat=new THREE.MeshStandardMaterial({color:0x000000,roughness:.4});
+const sb=new THREE.Mesh(new THREE.CapsuleGeometry(.4,4.6,6,12),smat);sb.position.y=2.9;sys.add(sb);
+const coreMat=new THREE.MeshStandardMaterial({color:0x112026,emissive:0x52fff2,emissiveIntensity:8});
+const sc=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),coreMat);sc.scale.set(1,1.9,.55);sc.position.set(0,3.1,.36);sys.add(sc);
+const sl=new THREE.PointLight(0x52fff2,11,9,2);sl.position.set(0,3.1,.6);sys.add(sl);
+
+// ---------- controls ----------
+const keys={};let yaw=0,pitch=.08,locked=false,walk=0,bunnyTargetYaw=0;
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(e.key.toLowerCase()==='r'){bunny.position.set(0,0,5);yaw=0;pitch=.08;bunnyTargetYaw=0;bunny.rotation.y=0}
+  if(e.key.toLowerCase()==='t')toggleEditor();
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+renderer.domElement.addEventListener('click',()=>{if(!editorOpen)renderer.domElement.requestPointerLock()});
+document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+function applyMouseDelta(dx,dy){
+  // Mouse para a direita = câmera olha para a direita.
+  // Mouse para cima = olhar para cima; na órbita isso desloca a câmera para baixo.
+  yaw-=dx*.00215;
+  pitch-=dy*.0017;
+  pitch=Math.max(-.45,Math.min(.45,pitch));
+}
+document.addEventListener('mousemove',e=>{
+  if(!locked)return;
+  applyMouseDelta(e.movementX,e.movementY);
+});
+
+function lerpAngle(a,b,t){
+  const diff=Math.atan2(Math.sin(b-a),Math.cos(b-a));
+  return a+diff*t;
+}
+
+// ---------- selection ----------
+const ray=new THREE.Raycaster();
+let selectedObj=null;
+function selectAtCenter(){
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hits=ray.intersectObjects(selectable,true);
+  if(hits.length){
+    selectedObj=hits[0].object;
+    document.getElementById('selected').textContent='Objeto selecionado: '+(selectedObj.userData.name||selectedObj.parent?.userData?.name||'objeto');
+  }
+}
+addEventListener('mousedown',e=>{if(e.button===1)selectAtCenter()});
+
+// ---------- texture editor ----------
+const editor=document.getElementById('editor');
+let editorOpen=false;
+function toggleEditor(){
+  editorOpen=!editorOpen;
+  editor.style.display=editorOpen?'block':'none';
+  if(editorOpen)document.exitPointerLock?.();
+}
+document.getElementById('toggleEditor').onclick=toggleEditor;
+
+const file=document.getElementById('file');
+const srcCanvas=document.getElementById('srcCanvas');
+const sx=srcCanvas.getContext('2d');
+const cropFrame=document.getElementById('cropFrame');
+const shape=document.getElementById('shape');
+const fit=document.getElementById('fit');
+const zoom=document.getElementById('zoom');
+const rot=document.getElementById('rot');
+const repX=document.getElementById('repX');
+const repY=document.getElementById('repY');
+
+let img=null,imgX=256,imgY=256,drag=false,lastX=0,lastY=0;
+
+function drawEditor(){
+  sx.clearRect(0,0,512,512);
+  sx.fillStyle='#05070b';sx.fillRect(0,0,512,512);
+  if(!img)return;
+
+  sx.save();
+  sx.translate(imgX,imgY);
+  sx.rotate(+rot.value*Math.PI/180);
+  const z=+zoom.value;
+  const iw=img.width*z,ih=img.height*z;
+  sx.drawImage(img,-iw/2,-ih/2,iw,ih);
+  sx.restore();
+
+  sx.strokeStyle='rgba(0,255,255,.15)';
+  for(let i=0;i<512;i+=32){sx.beginPath();sx.moveTo(i,0);sx.lineTo(i,512);sx.stroke();sx.beginPath();sx.moveTo(0,i);sx.lineTo(512,i);sx.stroke()}
+}
+file.onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const im=new Image();
+  im.onload=()=>{img=im;imgX=256;imgY=256;zoom.value=Math.min(1.3,512/Math.max(im.width,im.height)*1.5);drawEditor()};
+  im.src=URL.createObjectURL(f);
+};
+shape.onchange=()=>cropFrame.classList.toggle('oval',shape.value==='oval');
+[zoom,rot].forEach(el=>el.oninput=drawEditor);
+
+srcCanvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.offsetX;lastY=e.offsetY;srcCanvas.setPointerCapture(e.pointerId)});
+srcCanvas.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  imgX+=e.offsetX-lastX;imgY+=e.offsetY-lastY;lastX=e.offsetX;lastY=e.offsetY;drawEditor();
+});
+srcCanvas.addEventListener('pointerup',()=>drag=false);
+
+function makeTexture(){
+  if(!img)return null;
+  const out=document.createElement('canvas');out.width=out.height=512;
+  const ox=out.getContext('2d');
+  if(shape.value==='oval'){
+    ox.save();ox.beginPath();ox.ellipse(256,256,240,240,0,0,Math.PI*2);ox.clip();
+  }
+
+  const frameRect={x:60/360*512,y:60/360*512,w:200/360*512,h:200/360*512};
+  const crop=document.createElement('canvas');crop.width=crop.height=512;
+  const cx=crop.getContext('2d');
+
+  cx.drawImage(srcCanvas,
+    frameRect.x,frameRect.y,frameRect.w,frameRect.h,
+    0,0,512,512
+  );
+
+  if(fit.value==='stretch'){
+    ox.drawImage(crop,0,0,512,512);
+  }else{
+    // crop canvas is already square, contain/cover distinction retained for future non-square frames
+    ox.drawImage(crop,0,0,512,512);
+  }
+
+  if(shape.value==='oval')ox.restore();
+
+  const t=new THREE.CanvasTexture(out);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(+repX.value,+repY.value);
+  t.colorSpace=THREE.SRGBColorSpace;
+  t.needsUpdate=true;
+  return t;
+}
+function applyTexture(obj){
+  const t=makeTexture();if(!t||!obj)return;
+  if(!obj.material || Array.isArray(obj.material))return;
+  obj.material=obj.material.clone();
+  obj.material.map=t;
+  obj.material.color.set(0xffffff);
+  obj.material.needsUpdate=true;
+}
+document.getElementById('apply').onclick=()=>applyTexture(selectedObj);
+document.getElementById('applyFloor').onclick=()=>applyTexture(floor);
+document.getElementById('applyWall').onclick=()=>applyTexture(testWall);
+
+document.getElementById('enter').onclick=()=>{
+  document.getElementById('start').style.display='none';
+  renderer.domElement.requestPointerLock();
+};
+
+const clock=new THREE.Clock();
+window.__HYPER_TEST__={
+  state:()=>({yaw,pitch,bunny:{x:bunny.position.x,y:bunny.position.y,z:bunny.position.z,rot:bunny.rotation.y},camera:{x:camera.position.x,y:camera.position.y,z:camera.position.z}}),
+  mouse:(dx,dy)=>applyMouseDelta(dx,dy),
+  key:(k,v)=>{keys[k]=v},
+  step:(dt=.016)=>update(dt),
+  reset:()=>{bunny.position.set(0,0,5);yaw=0;pitch=.08;bunnyTargetYaw=0;bunny.rotation.y=0;}
+};
+function update(dt){
+  let f=(keys.w?1:0)-(keys.s?1:0);
+  let r=(keys.d?1:0)-(keys.a?1:0);
+  const l=Math.hypot(f,r)||1;
+  f/=l; r/=l;
+  const moving=Math.abs(f)+Math.abs(r)>0;
+  const speed=keys.shift?7.2:4.1;
+
+  // A direção de movimento nasce da câmera, não da rotação antiga do boneco.
+  // yaw=0: W=-Z, D=+X, A=-X, S=+Z.
+  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const moveDir=new THREE.Vector3();
+  moveDir.addScaledVector(forward,f);
+  moveDir.addScaledVector(right,r);
+
+  if(moveDir.lengthSq()>0){
+    moveDir.normalize();
+    bunny.position.addScaledVector(moveDir,speed*dt);
+    // O modelo olha para -Z quando rotation.y=0.
+    bunnyTargetYaw=Math.atan2(-moveDir.x,-moveDir.z);
+  }
+
+  bunny.position.x=THREE.MathUtils.clamp(bunny.position.x,-10.2,10.2);
+  bunny.position.z=THREE.MathUtils.clamp(bunny.position.z,-96,8);
+
+  if(moving){
+    walk+=dt*(keys.shift?12:8);
+    bunny.position.y=Math.abs(Math.sin(walk))*.045;
+    bunny.rotation.y=lerpAngle(bunny.rotation.y,bunnyTargetYaw,Math.min(1,dt*12));
+    armL.rotation.x=Math.sin(walk)*.5;
+    armR.rotation.x=-Math.sin(walk)*.5;
+  }else{
+    bunny.position.y*=.84;
+    armL.rotation.x*=.78;
+    armR.rotation.x*=.78;
+  }
+
+  const target=bunny.position.clone().add(new THREE.Vector3(0,1.75,0));
+  const dist=5.7;
+  const cp=Math.cos(pitch);
+  const desired=new THREE.Vector3(
+    target.x+Math.sin(yaw)*cp*dist,
+    target.y+1.15-Math.sin(pitch)*dist,
+    target.z+Math.cos(yaw)*cp*dist
+  );
+  camera.position.lerp(desired,1-Math.pow(.0008,dt));
+  camera.lookAt(target);
+}
+
+function animate(){
+  const dt=Math.min(clock.getDelta(),.033);
+  update(dt);
+  const t=performance.now()*.001;
+  coreMat.emissiveIntensity=7+Math.sin(t*2.3)*2;
+  scene.traverse(o=>{if(o.isMesh&&o.geometry?.type==='TorusGeometry')o.rotation.y+=dt*.12});
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
