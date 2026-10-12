@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Primeiro setor jogável de Hyper-Sleep / The Palace",
-  "scripts": { "start": "node server.cjs", "check": "node --check game.js && node --check server.cjs && node --check editor.js && node --check palace-engine.js && node --check palace-runtime.js && node --check palace-generator.js && node --check palace-windows.js && node --check palace-atlas.js && node --check palace-connections.js && node --check player-motion.js && node --check inventory.js", "test": "playwright test" },
+  "scripts": { "start": "node server.cjs", "check": "node --check play.js && node --check game.js && node --check server.cjs && node --check editor.js && node --check palace-scene.js && node --check palace-engine.js && node --check palace-character-registry.js && node --check palace-newcharacters.js && node --check palace-avatar.js && node --check palace-runtime.js && node --check palace-generator.js && node --check palace-windows.js && node --check palace-atlas.js && node --check palace-connections.js && node --check player-motion.js && node --check inventory.js", "test": "playwright test" },
   "dependencies": { "three": "0.170.0" },
   "devDependencies": { "@playwright/test": "^1.56.0" }
 }

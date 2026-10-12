@@ -1,31 +1,26 @@
 import * as THREE from 'three';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from './node_modules/three/examples/jsm/controls/TransformControls.js';
-import { CATALOG, ATLAS_TILES, ARCHITECTURE_TYPES, characterSlots, updateEntityUV, atlasAsset, applyAtlasToEntity, setAtlasMaterial, configureItem, configureWindow, clone, uid, clamp, createEntity, appearance, newProject, demoProject, validateProject, buildEntity, disposeObject, previewTexture, storeProject, restoreProject } from './palace-engine.js';
+import { CATALOG, CHARACTER_MODELS, characterDefinition, ATLAS_TILES, ARCHITECTURE_TYPES, characterSlots, updateEntityUV, atlasAsset, applyAtlasToEntity, setAtlasMaterial, configureItem, configureWindow, clone, uid, clamp, createEntity, appearance, newProject, demoProject, validateProject, buildEntity, disposeObject, previewTexture, storeProject, restoreProject } from './palace-engine.js';
 import { sliceAtlas } from './palace-atlas.js';
 import { snapConnection } from './palace-connections.js';
 import { PlaySession } from './palace-runtime.js';
 import { GENERATOR_STYLES, GENERATOR_LAYOUTS, GENERATOR_SIZES, normalizeGenerator, generatePalace, drawGeneratorMap } from './palace-generator.js';
 import { WINDOW_PRESETS, WINDOW_ACTIONS, windowPreset, windowState, drawWindow, WindowPanel, orientSystemWindow, applyWindowControl } from './palace-windows.js';
+import { createPalaceScene, applyPalaceEnvironment } from './palace-scene.js';
 
 const $ = id => document.getElementById(id);
 const viewport = $('viewport');
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(55, 1, .1, 500);
+const sceneContext = createPalaceScene(viewport), { scene, camera, renderer, ambient, sun } = sceneContext;
 camera.position.set(26, 25, 30);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-viewport.prepend(renderer.domElement);
-renderer.domElement.tabIndex = 0;
 const actorLayer = document.createElement('div'); actorLayer.id = 'actorLabels'; viewport.append(actorLayer);
 const actorInfo = document.createElement('div'); actorInfo.id = 'runtimeActorInfo'; actorInfo.className = 'hidden'; viewport.append(actorInfo);
 const materialPartNote = document.createElement('p'); materialPartNote.id = 'materialPartNote'; materialPartNote.className = 'field-note'; $('slotField').after(materialPartNote);
 { const option = document.createElement('option'); option.value = 'static'; option.textContent = 'Estática CRT'; $('materialPreset').append(option); }
 for (const [key, name] of [['wood','Madeira escura'],['concrete','Concreto rachado'],['carpet','Carpete mofado'],['water','Água de buffer']]) { const option = document.createElement('option'); option.value = key; option.textContent = name; $('materialPreset').append(option); }
-const ambient = new THREE.HemisphereLight('#c6ddbf', '#182c23', 1.6); scene.add(ambient);
-const sun = new THREE.DirectionalLight('#c9d9bc', 2); sun.position.set(12, 35, 18); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
-Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, far: 120 }); sun.shadow.bias = -.001; scene.add(sun);
+for (const [key,name] of [['alert','Janela de erro / miniatura'],['paper','Arquivo / papel'],['clock','Mostrador de relógio']]) { const option=document.createElement('option');option.value=key;option.textContent=name;$('materialPreset').append(option); }
+for(const id of ['playerModel','characterModel']) { if(id==='characterModel')$(id).replaceChildren();for(const model of CHARACTER_MODELS){const o=document.createElement('option');o.value=model.id;o.textContent=model.label;$(id).append(o);} }
+{const label=document.createElement('label');label.className='field';label.textContent='Protagonista do mapa';const select=document.createElement('select');select.id='genAvatar';for(const m of CHARACTER_MODELS){const o=document.createElement('option');o.value=m.id;o.textContent=m.label;select.append(o);}label.append(select);$('genLayoutDescription').after(label);}
 const world = new THREE.Group(); scene.add(world);
 const grid = new THREE.GridHelper(160, 160, '#53654e', '#273d2d'); grid.position.y = .012; grid.material.transparent = true; grid.material.opacity = .45; scene.add(grid);
 const axes = new THREE.AxesHelper(3); axes.position.y = .025; scene.add(axes);
@@ -42,6 +37,7 @@ let importingAtlas = false;
 let ghostDefinition = null;
 let previewRoot = null, previewEntity = null;
 let generatedPreview = null;
+const projectChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('palace-project') : null;
 const ray = new THREE.Raycaster(), pointer = new THREE.Vector2();
 ray.params.Line.threshold = .035;
 const windowPreview = new WindowPanel({ parent: viewport, onControl: control => {
@@ -52,11 +48,11 @@ const windowPreview = new WindowPanel({ parent: viewport, onControl: control => 
 }, onDismiss: () => { if (previewRoot) disposeObject(previewRoot); previewRoot = null; previewEntity = null; } });
 
 function toast(text, duration = 3500) { $('editorToast').textContent = text; $('editorToast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('editorToast').classList.remove('show'), duration); }
-function snapshot() { return { name: project.name, environment: clone(project.environment), entities: clone(project.entities), assets: project.assets, atlas: clone(project.atlas || {}), generation: clone(project.generation || null), selected }; }
+function snapshot() { return { name: project.name, environment: clone(project.environment), entities: clone(project.entities), assets: project.assets, atlas: clone(project.atlas || {}), generation: clone(project.generation || null), player:clone(project.player||null), selected }; }
 function pushHistory() { undo.push(snapshot()); if (undo.length > 60) undo.shift(); redo.length = 0; historyButtons(); }
 function historyButtons() { $('undoButton').disabled = !undo.length; $('redoButton').disabled = !redo.length; $('deleteButton').disabled = !selected; $('duplicateButton').disabled = !selected; $('copyObjectButton').disabled = !selected; }
 function fromSnapshot(s) {
-  project = { ...project, name: s.name, environment: clone(s.environment), entities: clone(s.entities), assets: { ...project.assets, ...s.assets }, atlas: clone(s.atlas || {}), generation: s.generation ? clone(s.generation) : undefined };
+  project = { ...project, name: s.name, environment: clone(s.environment), entities: clone(s.entities), assets: { ...project.assets, ...s.assets }, atlas: clone(s.atlas || {}), generation: s.generation ? clone(s.generation) : undefined,player:s.player?clone(s.player):undefined };
   selected = s.selected; rebuildAll(); changed();
 }
 function undoAction() { if (!undo.length || session) return; redo.push(snapshot()); fromSnapshot(undo.pop()); historyButtons(); }
@@ -72,15 +68,16 @@ function save(notify = true) {
   saveChain = saveChain.catch(() => {}).then(async () => {
     try {
       await storeProject(data); savedRevision = version;
+      projectChannel?.postMessage({type:'saved',name:data.name});
       $('saveState').textContent = revision === version ? '● Salvo no navegador · ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Alterações locais · salvamento pendente';
       if (notify) toast('PROJETO SALVO — objetos, personagens e texturas.');
-    } catch (err) { $('saveState').textContent = 'Falha no salvamento · exporte o JSON'; toast('Não foi possível salvar no navegador. Exporte o JSON para guardar o projeto.', 7000); console.error(err); }
+      return true;
+    } catch (err) { $('saveState').textContent = 'Falha no salvamento · exporte o JSON'; toast('Não foi possível salvar no navegador. Exporte o JSON para guardar o projeto.', 7000); console.error(err); return false; }
   });
   return saveChain;
 }
 function applyEnvironment() {
-  const e = project.environment; scene.background = new THREE.Color(e.background); scene.fog = new THREE.FogExp2(e.fog, e.fogDensity); ambient.intensity = e.ambient;
-  viewport.classList.toggle('pixelated', e.pixelated); renderer.setPixelRatio(e.pixelated ? .9 : Math.min(devicePixelRatio, 1.5));
+  const e = project.environment; applyPalaceEnvironment(sceneContext,e,viewport);
   $('worldFog').value = e.fog; $('worldBackground').value = e.background; $('fogDensity').value = e.fogDensity; $('ambientIntensity').value = e.ambient; $('worldPixelated').checked = e.pixelated;
   $('fogValue').textContent = e.fogDensity.toFixed(3); $('ambientValue').textContent = e.ambient.toFixed(1);
   resize();
@@ -90,6 +87,7 @@ function rebuildAll() {
   for (const root of roots.values()) disposeObject(root); roots.clear();
   for (const entity of project.entities) { const root = buildEntity(entity, project); world.add(root); roots.set(entity.id, root); }
   scene.updateMatrixWorld(true); applyEnvironment(); $('projectName').value = project.name;
+  $('playerModel').value=project.player?.model||'source';$('playerFit').checked=project.player?.fit!==false;
   if (!roots.has(selected)) selected = null; select(selected); refreshHierarchy();
   $('emptyHint').classList.toggle('hidden', project.entities.length > 0);
   applyEditorVisibility();
@@ -127,6 +125,7 @@ function inspector() {
   $('objectRotation').value = Number(THREE.MathUtils.radToDeg(e.rotation).toFixed(1));
   const character = ['spawn', 'character'].includes(e.type);
   $('characterSection').classList.toggle('hidden', !character); $('lightSection').classList.toggle('hidden', e.type !== 'light');
+  $('makePlayerSection').classList.toggle('hidden',!character);$('playerSourceInfo').textContent=project.player?.sourceId===e.id?'Este personagem está definido como protagonista.':'Usa aparência e configuração deste NPC. A entrada define onde o jogador começa.';
   $('windowSection').classList.toggle('hidden', e.type !== 'window'); if (e.type === 'window') windowInspector(e);
   $('behaviorSection').classList.toggle('hidden', !['screen', 'exit'].includes(e.type)); $('interactionText').value = e.message;
   $('mappingSection').classList.toggle('hidden', !ARCHITECTURE_TYPES.includes(e.type));
@@ -432,7 +431,11 @@ $('textureClear').onclick = () => mutateSelected(e => { const m = materialFor(e)
 $('copyMaterial').onclick = () => { if (materialFor()) { copiedMaterial = clone(materialFor()); toast('Material copiado. Selecione outro objeto ou outra parte e cole.'); } };
 $('pasteMaterial').onclick = () => { if (!copiedMaterial) return toast('Copie um material primeiro.'); mutateSelected(e => { Object.assign(materialFor(e), clone(copiedMaterial)); if ($('materialSlot').value === 'wireframe') { materialFor(e).texture = null; materialFor(e).preset = 'none'; } }); };
 $('characterModel').onchange = () => mutateSelected(e => { e.character.model = $('characterModel').value; e.character.appearance = appearance(e.character.model); applyAtlasToEntity(e, project); });
-$('characterRole').onchange = () => mutateSelected(e => e.character.role = $('characterRole').value);
+$('characterRole').onchange = () => mutateSelected(e => { e.character.role = $('characterRole').value; if(e.character.role==='player')project.player={model:'source',sourceId:e.id,fit:$('playerFit').checked}; });
+$('useAsPlayer').onclick=()=>{const e=getSelected();if(!e||session)return;pushHistory();project.player={model:'source',sourceId:e.id,fit:$('playerFit').checked};$('playerModel').value='source';inspector();changed();toast('PRINCIPAL: '+e.name+' — a entrada do mapa define o início.');};
+function changePlayerSettings(){const before=clone(project.player);pushHistory();project.player={model:$('playerModel').value,sourceId:project.player?.sourceId||null,fit:$('playerFit').checked};if(session&&!session.switchAvatar()){project.player=before;undo.pop();historyButtons();$('playerModel').value=before?.model||'source';return;}changed();}
+$('playerModel').onchange=changePlayerSettings;$('playerFit').onchange=changePlayerSettings;
+function chooseAvatar(){if(!session||session.paused)return;session.paused=true;session.keys.clear();if(document.pointerLockElement)document.exitPointerLock();const grid=document.createElement('div');grid.className='avatar-choice-grid';for(const m of CHARACTER_MODELS){const b=document.createElement('button');b.textContent=m.icon+' '+m.label;b.onclick=()=>{closeModal('infoModal');$('playerModel').value=m.id;changePlayerSettings();};grid.append(b);}info('Escolha seu protagonista',grid,[{label:'Voltar ao jogo'}],()=>{if(session){session.paused=false;session.capture();}});}
 $('characterDialogue').onchange = () => mutateSelected(e => e.character.dialogue = $('characterDialogue').value.slice(0, 4000), false);
 for (const [id, key, min, max] of [['characterSpeed', 'speed', .1, 15], ['characterRange', 'range', 1, 60], ['headScale', 'headScale', .3, 3], ['earScale', 'earScale', .2, 3]]) $(id).onchange = () => mutateSelected(e => e.character[key] = clamp(Number($(id).value) || 1, min, max));
 for (const [id, key, min, max] of [['characterHealth', 'maxHealth', 1, 10000], ['characterDamage', 'damage', 0, 1000], ['characterWanderRadius', 'wanderRadius', .5, 30]]) $(id).onchange = () => mutateSelected(e => {
@@ -490,10 +493,11 @@ $('gridButton').onclick = () => { grid.visible = !grid.visible; $('gridButton').
 
 for (const [id, entries] of [['genStyle', GENERATOR_STYLES], ['genLayout', GENERATOR_LAYOUTS]]) for (const entry of entries) { const option = document.createElement('option'); option.value = entry.key; option.textContent = entry.label; $(id).append(option); }
 function generatorConfig() {
-  return normalizeGenerator({ style: $('genStyle').value, layout: $('genLayout').value, width: $('genWidth').value, depth: $('genDepth').value, levels: $('genLevels').value, cellSize: $('genCellSize').value, seed: $('genSeed').value, loops: $('genLoops').value, density: $('genDensity').value, disks: $('genDisks').value, difficulty: $('genDifficulty').value, npcs: $('genNpcs').checked, windows: $('genWindows').checked, water: $('genWater').checked, roof: $('genRoof').checked, secrets: $('genSecrets').checked });
+  return normalizeGenerator({ avatar:$('genAvatar').value,style: $('genStyle').value, layout: $('genLayout').value, width: $('genWidth').value, depth: $('genDepth').value, levels: $('genLevels').value, cellSize: $('genCellSize').value, seed: $('genSeed').value, loops: $('genLoops').value, density: $('genDensity').value, disks: $('genDisks').value, difficulty: $('genDifficulty').value, npcs: $('genNpcs').checked, windows: $('genWindows').checked, water: $('genWater').checked, roof: $('genRoof').checked, secrets: $('genSecrets').checked });
 }
 function fillGenerator(config) {
   const c = normalizeGenerator(config);
+  $('genAvatar').value=c.avatar;
   for (const [id, key] of Object.entries({ genStyle: 'style', genLayout: 'layout', genWidth: 'width', genDepth: 'depth', genLevels: 'levels', genCellSize: 'cellSize', genSeed: 'seed', genLoops: 'loops', genDensity: 'density', genDisks: 'disks', genDifficulty: 'difficulty' })) $(id).value = c[key];
   for (const [id, key] of Object.entries({ genNpcs: 'npcs', genWindows: 'windows', genWater: 'water', genRoof: 'roof', genSecrets: 'secrets' })) $(id).checked = c[key];
   $('genSize').value = Object.entries(GENERATOR_SIZES).find(([, pair]) => pair[0] === c.width && pair[1] === c.depth)?.[0] || 'custom'; generatorDescriptions();
@@ -559,6 +563,7 @@ function withCurrentAtlas(p) {
 $('newProject').onclick = () => confirmReplace('Criar um mapa vazio?', withCurrentAtlas(newProject()));
 $('loadExample').onclick = () => confirmReplace('Carregar o setor de exemplo?', withCurrentAtlas(demoProject()));
 $('saveProject').onclick = () => save();
+$('playSavedProject').onclick = async () => { const popup=window.open('about:blank','palace-game'); const ok=await save(false); if(ok){if(popup)popup.location.href=new URL('./',location.href).href;else location.href='./';}else popup?.close(); };
 function exportJSON() {
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = (project.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/gi, '-').slice(0, 70) || 'palace-project') + '.palace.json';
@@ -621,7 +626,7 @@ function startPlay() {
     session = play; editorCamera = previousCamera;
     transform.detach(); transform.enabled = false; selectionBox.visible = false; grid.visible = false; axes.visible = false; orbit.enabled = false;
     document.body.classList.add('playing'); $('playButton').textContent = '■ Voltar ao editor'; $('playHud').classList.remove('hidden'); $('playInstructions').classList.remove('hidden');
-    $('playInstructions').textContent = 'WASD mover · ESPAÇO pular · CTRL / C agachar · SHIFT correr · E pegar · I inventário · ESC editor';
+    $('playInstructions').textContent = 'WASD mover · ESPAÇO pular · CTRL / C agachar · SHIFT correr · E pegar · I inventário · V personagem · ESC editor';
     resize(); session.cameraUpdate(1, true); session.capture();
   } catch (err) { applyEditorVisibility(); toast(err.message, 6000); }
 }
@@ -639,6 +644,7 @@ addEventListener('keydown', e => {
   if (session) {
     if (e.code === 'Escape') { e.preventDefault(); if (session.windowPanel.isOpen) session.windowPanel.close(); else if (session.inventoryPanel.isOpen) session.inventoryPanel.close(); else if (hasModal()) closeModal('infoModal'); else stopPlay(); return; }
     if (!typing && !e.repeat && (e.code === 'KeyI' || e.code === 'Tab' && !session.paused && !session.inventoryPanel.isOpen)) { e.preventDefault(); session.toggleInventory(); return; }
+    if(!typing&&!e.repeat&&e.code==='KeyV'&&!session.paused){e.preventDefault();chooseAvatar();return;}
     if (typing || session.paused) return;
     if (['Space', 'ControlLeft', 'ControlRight'].includes(e.code)) e.preventDefault(); session.keys.add(e.code);
     if (!e.repeat && e.code === 'KeyE') session.interact();
@@ -683,7 +689,7 @@ loadingProject = false;
 if (new URLSearchParams(location.search).has('test')) window.__ENGINE_TEST__ = {
   project: () => clone(project), select, place: (type, pos, model) => { pushHistory(); const e = createEntity(type, model, project); e.position = pos; project.entities.push(e); rebuildEntity(e.id); select(e.id); changed(); return e.id; },
   selected: () => selected, undo: undoAction, redo: redoAction, save: () => save(false), load: data => replaceProject(validateProject(data)),
-  runtime: () => session ? { position: session.player.position.toArray(), camera: session.camera.position.toArray(), radius: session.radius, height: session.motion.height, health: session.health, noise: session.noise, disks: session.entities.filter(e => e.type === 'disk' && session.collected.has(e.id)).map(e => e.id), collected: [...session.collected], inventory: session.inventory.snapshot(), crouched: session.motion.crouched, grounded: session.motion.grounded, velocity: session.motion.velocity, won: session.won, near: session.near?.id, appearance: session.spawn.character.appearance, windows: [...session.windows].map(([id, state]) => ({ id, ...clone(state), visible: roots.get(id).visible, position: roots.get(id).position.toArray(), size: roots.get(id).scale.toArray(), rotation: roots.get(id).rotation.y })), actors: [...session.actors.values()].map(a => ({ id: a.entity.id, health: a.health, maxHealth: a.maxHealth, alive: a.alive, position: a.root.position.toArray(), rotation: a.root.rotation.y })) } : null,
+  runtime: () => session ? { model:session.spawn.character.model,sourceId:session.controlledSourceId,avatar:session.avatarLabel,fitFactor:session.metrics.factor,maxHealth:session.maxHealth,position: session.player.position.toArray(), camera: session.camera.position.toArray(), radius: session.radius, height: session.motion.height, health: session.health, noise: session.noise, disks: session.entities.filter(e => e.type === 'disk' && session.collected.has(e.id)).map(e => e.id), collected: [...session.collected], inventory: session.inventory.snapshot(), crouched: session.motion.crouched, grounded: session.motion.grounded, velocity: session.motion.velocity, won: session.won, near: session.near?.id, appearance: session.spawn.character.appearance, windows: [...session.windows].map(([id, state]) => ({ id, ...clone(state), visible: roots.get(id).visible, position: roots.get(id).position.toArray(), size: roots.get(id).scale.toArray(), rotation: roots.get(id).rotation.y })), actors: [...session.actors.values()].map(a => ({ id: a.entity.id, health: a.health, maxHealth: a.maxHealth, alive: a.alive, position: a.root.position.toArray(), rotation: a.root.rotation.y })) } : null,
   noise: () => { if (session) { session.noise = 100; session.invulnerable = 0; session.enemies.forEach(e => e.cooldown = 0); } },
   teleport: (x, y, z) => { session.player.position.set(x, y, z); session.motion.reset(); session.invulnerable = 30; session.findInteraction(); session.cameraUpdate(1, true); },
   step: dt => session?.update(dt), damage: () => { session.invulnerable = 0; session.damage('TEST'); },

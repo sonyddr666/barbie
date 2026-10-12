@@ -1,5 +1,6 @@
 @echo off
 cd /d "%~dp0"
+set "PORT=8087"
 where node >nul 2>nul
 if errorlevel 1 (
   echo Instale o Node.js para abrir a Palace Engine.

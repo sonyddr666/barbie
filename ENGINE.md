@@ -4,6 +4,14 @@ Abra **`EDITAR.cmd`** ou acesse **`http://127.0.0.1:8087/editor.html`** enquanto
 
 Esta é a primeira versão da engine específica para Hyper-Sleep: editor de cenas, materiais, personagens, persistência e execução de mapas no navegador.
 
+## Jogar o projeto atual
+
+**Jogar** e **Testar mapa** usam a mesma `PlaySession`, o mesmo `buildEntity` e o mesmo renderizador/ambiente de `palace-scene.js`. A página principal carrega o projeto salvo em IndexedDB, incluindo atlas e materiais personalizados.
+
+Use **Salvar e jogar** no topo do editor. O jogo mostra o nome da cena carregada e avisa quando o editor salva alterações. **Recarregar projeto do editor** busca a versão nova. O servidor mantém a porta **8087**, inclusive ao abrir o launcher novamente, para conservar o armazenamento compartilhado.
+
+Os checkpoints da exploração ficam separados do projeto de edição e são associados à versão do mapa. A página principal também abre projetos JSON exportados, com suas imagens incorporadas.
+
 ## Geração automática de mapas completos
 
 Clique em **Gerar mapa completo** na Biblioteca. O gerador combina **6 setores visuais** das referências com **10 estruturas**:
@@ -95,6 +103,14 @@ Para imagens, selecione a parte **Imagem do conteúdo / cor** no Material e impo
 As ações disponíveis são fechar, gerar alerta/ruído, silenciar inimigos, ignorar, recuperar integridade, salvar checkpoint, pausar/retomar progresso e mostrar resposta. Janelas de olho podem informar SysAdmin. O modo de teste guarda os estados de janela no checkpoint; voltar ao editor restaura a configuração original. Tudo é salvo no projeto JSON, incluindo as imagens e os botões.
 
 ## Personagens e entidades
+
+### Todos os modelos como protagonistas
+
+A engine oferece **12 personagens jogáveis**. Além dos seis originais, há Error 404 / Aberração Pop-up, CRT-07 / Gato-monitor, Disk-03 / Robô de disquete, Patch-02 / Boneca de retalhos, Noct-08 / Mariposa de arquivo e Chrono-09 / Guardião-relógio.
+
+Use **Protagonista** no topo do editor para escolher um modelo. Para controlar um NPC com materiais personalizados, selecione-o e clique em **Usar este personagem como principal**. A entrada mantém o ponto inicial do mapa. Durante o teste, **V** permite trocar sem reiniciar a exploração. O gerador também permite selecionar o protagonista.
+
+**Adaptar tamanho** ajusta modelos grandes para os corredores, mantendo as proporções. Câmera, colisão e postura acompanham o avatar. Consulte **`AVATARES.md`** para os modelos, partes e controles.
 
 Modelos disponíveis: Cob-01, K-One, Box-Jaw, Eros, SysAdmin e Cobaia-00. É possível editar roupa/asas, corpo, rosto/visor e detalhes separadamente, além de proporções da cabeça e orelhas/chifres.
 

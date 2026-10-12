@@ -30,6 +30,7 @@ export class InventoryPanel {
     this.element.querySelector('.inventory-search').oninput = () => this.render(); this.element.querySelector('.inventory-filter').onchange = () => this.render();
   }
   open() { this.isOpen = true; this.element.classList.remove('hidden'); this.render(); this.closeButton.focus(); }
+  setOwner(name) { this.element.querySelector('header span').textContent=String(name).toUpperCase()+' / ARQUIVOS PESSOAIS'; }
   close(silent = false) { if (!this.isOpen) return; this.isOpen = false; this.element.classList.add('hidden'); if (!silent) this.onClose?.(); }
   dispose() { this.close(true); this.element.remove(); }
   render() {

@@ -1,4 +1,4 @@
-import { newProject, createEntity, configureItem, configureWindow, mat, atlasAsset } from './palace-engine.js';
+import { newProject, createEntity, configureItem, configureWindow, mat, atlasAsset, validCharacter } from './palace-engine.js';
 
 export const GENERATOR_STYLES = [
   { key: 'buffer', label: 'Buffer / corredores submersos', description: 'Tijolos verdes, azulejo molhado, água e luz fria.' },
@@ -25,7 +25,7 @@ const DIR = [{ dx: 0, dy: -1, bit: 1, opposite: 4 }, { dx: 1, dy: 0, bit: 2, opp
 const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 export function normalizeGenerator(input = {}) {
   const integer = (v, fallback, a, b) => Number.isFinite(Number(v)) ? Math.round(clamp(Number(v), a, b)) : fallback;
-  return { style: GENERATOR_STYLES.some(s => s.key === input.style) ? input.style : 'buffer', layout: GENERATOR_LAYOUTS.some(s => s.key === input.layout) ? input.layout : 'dfs', width: integer(input.width, 11, 7, 30), depth: integer(input.depth, 11, 7, 30), levels: integer(input.levels, 1, 1, 3), cellSize: Number.isFinite(Number(input.cellSize)) ? clamp(Number(input.cellSize), 5, 10) : 5, seed: String(input.seed || 'PALACE-1998').slice(0, 80), loops: integer(input.loops, 10, 0, 100), density: integer(input.density, 45, 0, 100), disks: integer(input.disks, 3, 0, 9), difficulty: ['none', 'easy', 'normal', 'hard'].includes(input.difficulty) ? input.difficulty : 'normal', npcs: input.npcs !== false, windows: input.windows !== false, water: input.water !== false, roof: input.roof !== false, secrets: input.secrets !== false };
+  return { avatar:validCharacter(input.avatar)?input.avatar:'cob',style: GENERATOR_STYLES.some(s => s.key === input.style) ? input.style : 'buffer', layout: GENERATOR_LAYOUTS.some(s => s.key === input.layout) ? input.layout : 'dfs', width: integer(input.width, 11, 7, 30), depth: integer(input.depth, 11, 7, 30), levels: integer(input.levels, 1, 1, 3), cellSize: Number.isFinite(Number(input.cellSize)) ? clamp(Number(input.cellSize), 5, 10) : 5, seed: String(input.seed || 'PALACE-1998').slice(0, 80), loops: integer(input.loops, 10, 0, 100), density: integer(input.density, 45, 0, 100), disks: integer(input.disks, 3, 0, 9), difficulty: ['none', 'easy', 'normal', 'hard'].includes(input.difficulty) ? input.difficulty : 'normal', npcs: input.npcs !== false, windows: input.windows !== false, water: input.water !== false, roof: input.roof !== false, secrets: input.secrets !== false };
 }
 function hash(value) { let h = 2166136261; for (const c of value) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
 function random(seed) { let state = hash(seed); return () => { state += 0x6D2B79F5; let t = state; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -146,7 +146,7 @@ export function generatePalace(input = {}, library = {}) {
   reserve.add(start); reserve.add(exitNode);
   const ranked = [...navigation.queue].filter(n => !reserve.has(n)).sort((a, b) => navigation.distance[b] - navigation.distance[a]), diskNodes = [];
   for (let i = 0; i < cfg.disks; i++) { const candidates = i < cfg.levels ? ranked.filter(n => Math.floor(n / area) === i && !reserve.has(n)) : ranked.filter(n => !reserve.has(n)); const target = candidates[i < cfg.levels ? 0 : Math.min(candidates.length - 1, Math.floor(i * candidates.length / Math.max(1, cfg.disks)))]; if (target !== undefined && !diskNodes.includes(target)) { diskNodes.push(target); reserve.add(target); } }
-  const spawn = add('spawn', world(start), null, { name: 'Cob-01 / entrada gerada' }, true);
+  const spawn = add('spawn', world(start), null, { model:cfg.avatar,name: 'Entrada / protagonista gerado' }, true);
   spawn.character.dialogue = '';
   const exit = add('exit', world(exitNode), null, { name: 'COB_01.EXE / saída gerada' }, true);
   const exitPos = world(exitNode), spawnPos = world(start); exit.rotation = Math.PI;

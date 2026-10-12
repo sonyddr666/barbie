@@ -1,6 +1,8 @@
 import * as THREE from './node_modules/three/build/three.module.js';
 import { PlayerMotion } from './player-motion.js';
 import { Inventory, InventoryPanel } from './inventory.js';
+import { CHARACTER_MODELS, createEntity, newProject, restoreProject, disposeObject, characterDefinition } from './palace-engine.js';
+import { prepareAvatar } from './palace-avatar.js';
 
 const $ = id => document.getElementById(id);
 const clamp = THREE.MathUtils.clamp;
@@ -218,7 +220,6 @@ function monitor(x, y, z, kind = 'eye', rot = 0, active = true) {
   box(0, 0, 0, 1.25, 1, .48, dark, false, g);
   box(0, .35, .25, 1.13, .15, .02, new THREE.MeshBasicMaterial({ color: '#293d82' }), false, g);
   const face = mesh(new THREE.PlaneGeometry(1.05, .7), new THREE.MeshBasicMaterial({ map: kind === 'eye' ? eyeTex : lipsTex, color: active ? '#ccdfe4' : '#22352c' }), 0, -.04, .255, g);
-  label('•', x, y, z);
   const obj = { group: g, face, kind, enabled: active, pos: new THREE.Vector3(x, y - .6, z) }; monitors.push(obj);
   if (kind === 'eye' && active) interactables.push({ pos: obj.pos, radius: 2.4, text: 'Desligar Watcher', action: () => {
     obj.enabled = false; face.material.color.set('#20342b'); audio.blip(110, .2); state.noise = Math.max(0, state.noise - 25); toast('WATCHER OFFLINE — a vigilância perdeu um olho.');
@@ -298,8 +299,9 @@ function bunnyModel() {
   mesh(new THREE.SphereGeometry(.13, 8, 6), cream, 0, .66, .48, g);
   return { group: g, arms, legs, ears };
 }
-const bunny = bunnyModel(); scene.add(bunny.group);
-const player = bunny.group;
+const bunny = bunnyModel();
+const player = new THREE.Group();player.add(bunny.group);scene.add(player);
+let avatarBody=bunny.group, avatarMetrics={height:2.7,cameraHeight:1.45,cameraDistance:5.6,radius:.29}, avatarModel='cob', avatarLibrary=newProject();
 const playerLight = new THREE.PointLight('#f7dbca', 3.4, 5); playerLight.position.set(0, 1.8, 0); player.add(playerLight);
 
 function npc(x, z, type) {
@@ -432,6 +434,18 @@ function toggleInventory() {
   if (!state.started || state.paused || state.dialog) return;
   state.inventoryOpen = true; releaseMouse(); motion.jumpBuffer = 0; inventoryPanel.open(); $('hint').classList.add('hidden');
 }
+function setGameAvatar(model){
+  if(avatarBody!==bunny.group)disposeObject(avatarBody);else avatarBody.removeFromParent();
+  avatarModel=model;
+  if(model==='cob'){avatarBody=bunny.group;avatarMetrics={height:2.7,cameraHeight:1.45,cameraDistance:5.6,radius:.29};}
+  else{const ch=createEntity('spawn',model,avatarLibrary).character,p=prepareAvatar(avatarLibrary,{character:ch,size:[1,1,1],fit:true},player.position);avatarBody=p.root;avatarMetrics=p;}
+  player.add(avatarBody);motion.standingHeight=avatarMetrics.height;motion.reset();velocityY=0;player.scale.y=1;keys.clear();
+  $('hud').querySelector('.identity .eyebrow').textContent=characterDefinition(model).label+' / BUFFER';inventoryPanel.setOwner(characterDefinition(model).label);
+  try{localStorage.setItem('hyper-sleep-avatar',model);}catch{}
+  if(state.started)cameraUpdate(1);
+}
+for(const m of CHARACTER_MODELS){const option=document.createElement('option');option.value=m.id;option.textContent=m.label;$('gameAvatar').append(option);}
+$('gameAvatar').onchange=()=>setGameAvatar($('gameAvatar').value);
 const bat = { mode: 'patrol', timer: 0, cooldown: 6, target: new THREE.Vector3(), lastKnown: new THREE.Vector3(), patrol: 0 };
 eros.position.set(0, 5, -4);
 player.position.set(0, 0, 10);
@@ -550,7 +564,7 @@ function damage(reason) {
 }
 function win() {
   state.won = true; audio.collect(); state.paused = true; releaseMouse();
-  $('overlay').classList.remove('hidden'); $('menuDescription').innerHTML = 'COB_01.EXE successfully restored.<br>Por um instante, seu reflexo continua no vidro do monitor.<br>Você escapou... ou o Palace só mudou de endereço?';
+  $('overlay').classList.remove('hidden'); $('menuDescription').innerHTML = characterDefinition(avatarModel).label+' successfully restored.<br>Por um instante, seu reflexo continua no vidro do monitor.<br>Você escapou... ou o Palace só mudou de endereço?';
   $('play').innerHTML = 'VOLTAR AO PALACE <span>↗</span>';
   $('continueInfo').textContent = 'SETOR CONCLUÍDO / você pode continuar explorando.';
 }
@@ -585,6 +599,7 @@ addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Space' && state.started && !state.paused && !state.dialog) motion.requestJump();
   if (e.code === 'KeyC' && state.started && !state.paused && !state.dialog) motion.toggleCrouch();
+  if(e.code==='KeyV'&&state.started&&!state.paused&&!state.dialog){pause();$('gameAvatar').focus();}
   if (e.code === 'Escape') { if (state.dialog) { $('dialogButtons').lastElementChild?.click(); } else if (state.paused && state.started) start(); else pause(); }
   if (e.code === 'KeyM' && state.started && !state.paused && !state.dialog) $('mapPanel').classList.toggle('hidden');
   if (e.code === 'KeyE' && state.started && !state.paused && !state.dialog && near) near.action();
@@ -610,7 +625,7 @@ addEventListener('mousemove', e => {
 
 const ray = new THREE.Raycaster();
 function blocked(x, y, z, height = motion.height) {
-  const r = .29;
+  const r = avatarMetrics.radius;
   return solids.some(s => s.active && y + height > s.y1 + .025 && y < s.y2 - .08 && x + r > s.x1 && x - r < s.x2 && z + r > s.z1 && z - r < s.z2)
     || surfaces.some(s => !s.ramp && y < s.y - .3 - .025 && y + height > s.y - .3 + .025 && x + r > s.x1 && x - r < s.x2 && z + r > s.z1 && z - r < s.z2);
 }
@@ -636,7 +651,8 @@ function movePlayer(dt) {
   const len = Math.hypot(f, r); if (len) { f /= len; r /= len; }
   const silent = motion.crouched;
   const running = !silent && (keys.has('ShiftLeft') || keys.has('ShiftRight'));
-  const speed = silent ? 1.65 : running ? 5.8 : 3.1;
+  const baseSpeed=avatarModel==='cob'?3.1:characterDefinition(avatarModel).speed;
+  const speed = silent ? baseSpeed*.5 : running ? baseSpeed*1.85 : baseSpeed;
   const dx = (-Math.sin(yaw) * f + Math.cos(yaw) * r) * speed * dt;
   const dz = (-Math.cos(yaw) * f - Math.sin(yaw) * r) * speed * dt;
   const before = player.position.clone();
@@ -655,17 +671,19 @@ function movePlayer(dt) {
     if (running) state.noise = Math.min(100, state.noise + dt * 31);
     else state.noise = Math.max(0, state.noise - dt * (silent ? 28 : 10));
   } else state.noise = Math.max(0, state.noise - dt * 22);
-  bunny.arms.forEach((m, i) => m.rotation.x = moving ? Math.sin(walkTime) * .5 * (i ? -1 : 1) : THREE.MathUtils.lerp(m.rotation.x, 0, dt * 8));
-  bunny.legs.forEach((m, i) => m.rotation.x = moving ? Math.sin(walkTime) * .38 * (i ? 1 : -1) : THREE.MathUtils.lerp(m.rotation.x, 0, dt * 8));
-  bunny.ears.forEach((m, i) => m.rotation.z = (i ? -.08 : .08) + Math.sin(state.time * 2) * .015);
+  if(avatarModel==='cob'){
+    bunny.arms.forEach((m, i) => m.rotation.x = moving ? Math.sin(walkTime) * .5 * (i ? -1 : 1) : THREE.MathUtils.lerp(m.rotation.x, 0, dt * 8));
+    bunny.legs.forEach((m, i) => m.rotation.x = moving ? Math.sin(walkTime) * .38 * (i ? 1 : -1) : THREE.MathUtils.lerp(m.rotation.x, 0, dt * 8));
+    bunny.ears.forEach((m, i) => m.rotation.z = (i ? -.08 : .08) + Math.sin(state.time * 2) * .015);
+  }else{avatarBody.userData.animation?.limbs.forEach((m,i)=>m.rotation.x=moving?Math.sin(walkTime)*.4*(i%2?-1:1):m.rotation.x*.85);avatarBody.userData.animation?.wings.forEach((m,i)=>m.rotation.y=Math.sin(state.time*9)*(motion.grounded?.16:.5)*(i?-1:1));avatarBody.userData.animation?.clockHands?.forEach((m,i)=>m.rotation.z=-state.time*(i?.15:.55));}
   const zone = floor?.surface.name || 'MEMÓRIA NÃO ALOCADA'; $('zone').textContent = zone;
   if (player.position.x < -24 && player.position.z < -8 && !state.secret) { state.secret = true; updateHud(); toast('COSTURA ATRAVESSADA — você encontrou a memória esquecida.'); }
   falseWall.material.opacity = state.secret ? .32 + Math.sin(state.time * 3) * .12 : .92;
 }
 function cameraUpdate(dt) {
-  const target = player.position.clone().add(new THREE.Vector3(0, motion.crouched ? .8 : 1.45, 0));
-  const distance = 5.6;
-  const offset = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch) * distance, 1.15 + Math.sin(pitch) * distance, Math.cos(yaw) * Math.cos(pitch) * distance);
+  const target = player.position.clone().add(new THREE.Vector3(0, avatarMetrics.cameraHeight*(motion.crouched?.55:1), 0));
+  const distance = avatarMetrics.cameraDistance;
+  const offset = new THREE.Vector3(Math.sin(yaw) * Math.cos(pitch) * distance, avatarMetrics.height*.42 + Math.sin(pitch) * distance, Math.cos(yaw) * Math.cos(pitch) * distance);
   ray.set(target, offset.clone().normalize()); ray.far = offset.length();
   const hits = ray.intersectObjects(cameraSolids.filter(m => m.material.visible !== false && !(m === gate && state.gate)), false);
   if (hits.length) offset.setLength(Math.max(.5, hits[0].distance - .25));
@@ -779,12 +797,13 @@ function animate() {
   }
   renderer.render(scene, camera);
 }
+try{const stored=await restoreProject();if(stored?.assets){avatarLibrary.assets=stored.assets;avatarLibrary.atlas=stored.atlas||{};}const model=localStorage.getItem('hyper-sleep-avatar');if(CHARACTER_MODELS.some(m=>m.id===model)){$('gameAvatar').value=model;setGameAvatar(model);}}catch{}
 updateHud(); camera.lookAt(0, 1.5, 10); $('loading').classList.add('hidden'); animate();
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 
 // Explicit opt-in diagnostics for browser verification; absent in normal play.
 if (new URLSearchParams(location.search).has('test')) window.__PALACE_TEST__ = {
-  state: () => ({ ...state, yaw, pitch, player: player.position.toArray(), inventory: inventory.snapshot(), crouched: motion.crouched, grounded: motion.grounded, near: near?.text, bat: bat.mode, zone: $('zone').textContent }),
+  state: () => ({ ...state, model:avatarModel,yaw, pitch, player: player.position.toArray(), inventory: inventory.snapshot(), crouched: motion.crouched, grounded: motion.grounded, near: near?.text, bat: bat.mode, zone: $('zone').textContent }),
   teleport: (x, y, z) => { player.position.set(x, y, z); velocityY = 0; motion.reset(); yaw = 0; pitch = .18; state.invulnerable = 20; cameraUpdate(1); nearestInteraction(); },
   interact: () => near?.action(),
   step: dt => { movePlayer(dt); cameraUpdate(dt); nearestInteraction(); },

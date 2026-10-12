@@ -10,6 +10,12 @@ Cada parte abaixo tem um material independente, editável em **Material / textur
 | Eros | Cabeça; tronco; boca/dentes; asas; olhos; chifres; coração da testa |
 | SysAdmin | Corpo de sombra; cabeça; núcleo do peito; olhos luminosos |
 | Cobaia-00 | Estrutura/braços/pernas; carcaça da cabeça; tela da cabeça; tela do peito; linhas de wireframe |
+| Error 404 | Massa orgânica; interior da boca; dentes; pernas; monitores; janelas de erro; núcleo/glitch |
+| CRT-07 | Corpo; carcaça CRT; tela/rosto; orelhas; patas; cauda; núcleo |
+| Disk-03 | Corpo; cabeça/disquete; proteção metálica; olhos/visor; mãos; pés; núcleo/cassete |
+| Patch-02 | Corpo; cabeça; vestido; botões/olhos; costuras; cabelo/laço; pingente |
+| Noct-08 | Corpo; cabeça; asas; olhos; antenas; marcas de arquivo; núcleo |
+| Chrono-09 | Casaco; moldura; mostrador; ponteiros; membros; engrenagens; pêndulo |
 
 ## Correções da auditoria
 

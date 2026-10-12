@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { WINDOW_PRESETS, windowPreset, normalizeWindow, buildSystemWindow } from './palace-windows.js';
+import { CHARACTER_MODELS, NEW_CHARACTER_APPEARANCE, characterDefinition, validCharacter } from './palace-character-registry.js';
+import { buildNewCharacter } from './palace-newcharacters.js';
+export { CHARACTER_MODELS, characterDefinition, validCharacter };
 
 export const VERSION = 1;
 export const clone = value => structuredClone(value);
@@ -19,7 +22,7 @@ export const CATALOG = [
   ...WINDOW_PRESETS.map(p => ({ type: 'window', windowKind: p.key, label: p.label, icon: p.icon, category: 'JANELAS / WINDOWS' })),
   { type: 'spawn', label: 'Entrada / jogador', icon: '♡', category: 'PERSONAGENS' },
   ...[['key', 'Chave', '⚿'], ['heal', 'Cápsula de cura', '♡'], ['note', 'Registro / nota', '▤'], ['material', 'Objeto coletável', '◈']].map(([kind, label, icon]) => ({ type: 'item', kind, label, icon, category: 'ITENS COLETÁVEIS' })),
-  ...[['cob', 'Cob-01', '♧'], ['kone', 'K-One', '◬'], ['boxjaw', 'Box-Jaw', '▣'], ['eros', 'Eros', '⋈'], ['sysadmin', 'SysAdmin', '♙'], ['cobaia', 'Cobaia-00', '♜']].map(([model, label, icon]) => ({ type: 'character', model, label, icon, category: 'PERSONAGENS' })),
+  ...CHARACTER_MODELS.map(({ id: model, label, icon }) => ({ type: 'character', model, label, icon, category: 'PERSONAGENS' })),
 ];
 export const ATLAS_TILES = [
   ['brick', 'Tijolo com musgo'], ['tile', 'Azulejo úmido'], ['yellow', 'Papel amarelo'], ['concrete', 'Concreto rachado'],
@@ -35,6 +38,7 @@ export const CHARACTER_SLOTS = {
   eros: [['body', 'Cabeça / pelúcia'], ['torso', 'Corpo / tronco'], ['face', 'Boca / dentes'], ['wings', 'Asas / membrana'], ['eyes', 'Olhos'], ['horns', 'Chifres'], ['emblem', 'Coração da testa']],
   sysadmin: [['body', 'Corpo / sombra'], ['head', 'Cabeça'], ['core', 'Núcleo ciano / peito'], ['eyes', 'Olhos luminosos']],
   cobaia: [['body', 'Estrutura / braços e pernas'], ['head', 'Carcaça do monitor / cabeça'], ['face', 'Tela da cabeça'], ['screen', 'Tela do peito'], ['wireframe', 'Linhas / wireframe (cor)']],
+  ...Object.fromEntries(CHARACTER_MODELS.filter(m => m.slots).map(m => [m.id, m.slots])),
 };
 export function characterSlots(model) { return (CHARACTER_SLOTS[model] || CHARACTER_SLOTS.cob).map(([key, label]) => ({ key, label, texture: key !== 'wireframe' })); }
 export function mat(preset = 'none', color = '#ffffff', extra = {}) {
@@ -43,8 +47,8 @@ export function mat(preset = 'none', color = '#ffffff', extra = {}) {
 export function appearance(model = 'cob') {
   const colors = { cob: '#e8e4d8', kone: '#42908c', boxjaw: '#a63753', eros: '#be5188', sysadmin: '#101719', cobaia: '#163a31' };
   const a = {
-    body: mat('none', colors[model]),
-    cloth: mat(model === 'cob' ? 'plaid' : 'none', model === 'cob' ? '#ffffff' : colors[model]),
+    body: mat('none', colors[model] || '#d7d9d3'),
+    cloth: mat(model === 'cob' ? 'plaid' : 'none', model === 'cob' ? '#ffffff' : colors[model] || '#d7d9d3'),
     face: mat(model === 'cobaia' ? 'static' : model === 'kone' ? 'eye' : model === 'boxjaw' || model === 'eros' ? 'teeth' : 'none', model === 'cob' ? '#090d0d' : model === 'sysadmin' ? '#7ed8ce' : '#ffffff'),
     side: mat(model === 'boxjaw' ? 'eye' : 'none'),
     accent: mat('none', model === 'sysadmin' || model === 'cobaia' ? '#8ae8c3' : '#d889ab', { emissive: model === 'sysadmin' || model === 'cobaia' ? '#306658' : '#000000' }),
@@ -55,6 +59,7 @@ export function appearance(model = 'cob') {
   if (model === 'eros') Object.assign(a, { torso: structuredClone(a.body), wings: mat('none', '#963b6d'), eyes: black(), horns: mat('none', '#903b6a'), emblem: mat('none', '#f5b7d3') });
   if (model === 'sysadmin') Object.assign(a, { head: structuredClone(a.body), core: structuredClone(a.accent), eyes: mat('none', '#9bf0e4', { emissive: '#60c6b7', roughness: .25 }) });
   if (model === 'cobaia') Object.assign(a, { head: structuredClone(a.body), screen: structuredClone(a.face), wireframe: mat('none', '#72cdb1', { metalness: 0 }) });
+  for (const [key, [preset, color, emissive]] of Object.entries(NEW_CHARACTER_APPEARANCE[model] || {})) a[key] = mat(preset, color, { emissive: emissive || '#000000' });
   return a;
 }
 export function normalizeAppearance(model, input = {}) {
@@ -72,7 +77,7 @@ export function normalizeAppearance(model, input = {}) {
 export function createEntity(type, model, project = null) {
   const sizes = { floor: [4, .25, 4], wall: [4, 4, .4], box: [1.5, 1.5, 1.5], ramp: [3, 2, 5], water: [4, .04, 4], light: [1, 1, 1], screen: [1.3, 1.1, .4], window: [3.2, 2, .12] };
   const material = type === 'floor' ? mat('tile', '#ffffff', { repeat: [2, 2], roughness: .3, metalness: .25 }) : type === 'wall' ? mat('brick', '#ffffff', { repeat: [2, 2] }) : type === 'water' ? mat('tile', '#6caa9a', { roughness: .08, metalness: .7, opacity: .45 }) : type === 'screen' ? mat('eye') : mat('metal', '#8e9d87');
-  const m = model || 'cob';
+  const m = validCharacter(model) ? model : 'cob', definition = characterDefinition(m);
   const entity = {
     id: uid(), type, name: CATALOG.find(c => c.type === type && (!model || c.model === model))?.label || type,
     position: [0, 0, 0], rotation: 0, size: sizes[type] || [1, 1, 1], visible: true,
@@ -83,6 +88,9 @@ export function createEntity(type, model, project = null) {
     message: type === 'screen' ? 'WATCHER OFFLINE — o sistema perdeu um olho.' : type === 'exit' ? 'COB_01.EXE successfully restored.' : '',
   };
   if (type === 'item') configureItem(entity, 'material');
+  entity.character.maxHealth = definition.health;
+  if (type === 'spawn') entity.character.speed = definition.speed;
+  if (definition.enemy && type !== 'spawn') entity.character.role = 'enemy';
   if (type === 'window') configureWindow(entity, 'warning');
   if (ARCHITECTURE_TYPES.includes(type)) { entity.material.mapping = 'world'; entity.material.repeat = [1, 1]; }
   if (project) applyAtlasToEntity(entity, project);
@@ -138,6 +146,15 @@ export function applyAtlasToEntity(e, project, force = false) {
     if (model === 'eros') { set(a.body, 'fur', { color: '#d36aa8' }); set(a.torso, 'fur', { color: '#d36aa8' }); set(a.wings, 'red', { color: '#ee9dd2' }); set(a.horns, 'fur', { color: '#903b6a' }); set(a.face, 'teeth', { repeat: [1, 1] }); }
     if (model === 'sysadmin') { set(a.body, 'concrete', { color: '#20262c' }); set(a.head, 'concrete', { color: '#20262c' }); }
     if (model === 'cobaia') { set(a.body, 'metal', { color: '#78bd9e' }); set(a.head, 'metal', { color: '#78bd9e' }); set(a.face, 'static', { repeat: [1, 1] }); set(a.screen, 'static', { repeat: [1, 1] }); }
+    const recipes = {
+      error404: { body: ['concrete','#57213f'], legs: ['metal','#733656'], screens: ['eye','#ffffff'], core: ['static','#db74ba'] },
+      crtcat: { body: ['fur','#86b7b1'], head: ['metal','#466169'], screen: ['static','#d4ede3'], tail: ['fur','#86b7b1'] },
+      diskbot: { body: ['metal','#839faa'], shutter: ['metal','#b8c9cc'], hands: ['metal','#839faa'] },
+      patchdoll: { body: ['fur','#cdb49c'], head: ['fur','#e2c5a8'], cloth: ['plaid','#ffffff'] },
+      filemoth: { body: ['fur','#b4b9ac'], head: ['fur','#e5dcc9'] },
+      chronoguard: { body: ['teal','#919aaa'], head: ['metal','#d6b582'], limbs: ['metal','#90aaa7'], gears: ['metal','#ddbd87'] },
+    };
+    for (const [key, [texture, color]] of Object.entries(recipes[model] || {})) set(a[key], texture, { color });
   }
   if (changed && ARCHITECTURE_TYPES.includes(e.type)) { e.material.mapping = 'world'; e.material.tileSize = e.type === 'ramp' ? [2, 2] : [3, 3]; e.material.repeat = [1, 1]; }
   return changed;
@@ -198,13 +215,14 @@ const color = (value, fallback) => colorPattern.test(value) ? value : fallback;
 const num = (value, fallback, min = -500, max = 500) => Number.isFinite(Number(value)) ? clamp(Number(value), min, max) : fallback;
 function normalizeMaterial(value, fallback = mat()) {
   const m = { ...fallback, ...value };
-  const presets = ['none', 'brick', 'tile', 'yellow', 'plaid', 'metal', 'wood', 'concrete', 'carpet', 'water', 'eye', 'lips', 'teeth', 'static', 'custom'];
+  const presets = ['none', 'brick', 'tile', 'yellow', 'plaid', 'metal', 'wood', 'concrete', 'carpet', 'water', 'eye', 'lips', 'teeth', 'static', 'alert', 'paper', 'clock', 'custom'];
   return { preset: presets.includes(m.preset) ? m.preset : 'none', color: color(m.color, '#ffffff'), emissive: color(m.emissive, '#000000'), texture: typeof m.texture === 'string' ? m.texture : null, mapping: ['world', 'local'].includes(m.mapping) ? m.mapping : 'local', tileSize: [num(m.tileSize?.[0], 3, .1, 200), num(m.tileSize?.[1], 3, .1, 200)], offset: [num(m.offset?.[0], 0, -100, 100), num(m.offset?.[1], 0, -100, 100)], repeat: [num(m.repeat?.[0], 1, .1, 100), num(m.repeat?.[1], 1, .1, 100)], uvRotation: num(m.uvRotation, 0, -360, 360), roughness: num(m.roughness, .8, 0, 1), metalness: num(m.metalness, .05, 0, 1), opacity: num(m.opacity, 1, .1, 1) };
 }
 export function validateProject(input) {
   if (!input || input.format !== 'palace-engine' || input.version !== VERSION || !Array.isArray(input.entities)) throw new Error('Formato inválido. Abra um projeto JSON da Palace Engine v1.');
   if (input.entities.length > 1500) throw new Error('Este editor aceita até 1.500 objetos por setor.');
   const p = newProject(); p.name = String(input.name || p.name).slice(0, 100);
+  if (input.player && typeof input.player === 'object') p.player = { model: validCharacter(input.player.model) ? input.player.model : 'source', sourceId: typeof input.player.sourceId === 'string' ? input.player.sourceId : null, fit: input.player.fit !== false };
   const e = input.environment || {};
   p.environment = { background: color(e.background, p.environment.background), fog: color(e.fog, p.environment.fog), fogDensity: num(e.fogDensity, .018, 0, .08), ambient: num(e.ambient, 1.6, .1, 4), pixelated: e.pixelated !== false };
   let bytes = 0;
@@ -221,7 +239,7 @@ export function validateProject(input) {
     const base = createEntity(o.type, o.character?.model);
     const id = typeof o.id === 'string' && !ids.has(o.id) ? o.id : uid(); ids.add(id);
     const ch = o.character || {};
-    const model = ['cob', 'kone', 'boxjaw', 'eros', 'sysadmin', 'cobaia'].includes(ch.model) ? ch.model : 'cob';
+    const model = validCharacter(ch.model) ? ch.model : 'cob';
     const ap = appearance(model);
     p.entities.push({ ...base, id, name: String(o.name || base.name).slice(0, 100),
       position: [0, 1, 2].map(i => num(o.position?.[i], 0)), rotation: num(o.rotation, 0, -Math.PI * 200, Math.PI * 200), size: [0, 1, 2].map(i => num(o.size?.[i], 1, .1, 200)), visible: o.visible !== false, collision: ['floor', 'ramp'].includes(o.type) && (input.collisionVersion || 0) < 2 ? true : (o.collision ?? base.collision) === true,
@@ -269,6 +287,12 @@ function makeTexture(preset) {
     fill('#93804b'); let seed = 1888; for (let i = 0; i < 2600; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; fill(['#554d2b','#c2a96b','#736735'][(seed >>> 24) % 3], seed % 128, seed >>> 16 & 127, 2, 2); }
   } else if (preset === 'water') {
     fill('#183e3e'); let seed = 773; for (let i = 0; i < 260; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; fill('#82b9a855', seed % 128, seed >>> 16 & 127, 4 + seed % 20, 1); }
+  } else if (preset === 'alert') {
+    fill('#c0c0c0'); fill('#15277d',0,0,128,19); c.fillStyle='#fff';c.font='bold 9px monospace';c.fillText('WARNING',5,13);c.fillStyle='#edcc43';c.beginPath();c.moveTo(24,38);c.lineTo(39,66);c.lineTo(9,66);c.fill();c.fillStyle='#111';c.font='bold 20px monospace';c.fillText('!',19,62);c.font='9px monospace';c.fillText('ERROR 404',45,55);c.strokeRect(43,86,42,22);c.fillText('OK',57,101);
+  } else if (preset === 'paper') {
+    fill('#ddd2b6'); for(let y=20;y<114;y+=12) fill('#45536277',12,y,94-(y%3)*9,2);fill('#b39f78',0,0,128,4);
+  } else if (preset === 'clock') {
+    fill('#ddd5be'); c.strokeStyle='#796447';c.lineWidth=4;c.beginPath();c.arc(64,64,58,0,7);c.stroke();for(let i=0;i<12;i++){const a=i/12*Math.PI*2;c.fillStyle='#27313e';c.fillRect(62+Math.sin(a)*48,62-Math.cos(a)*48,4,4);}
   } else if (preset === 'static') {
     fill('#11222b'); let seed = 1998;
     for (let i = 0; i < 4096; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; fill(['#cfdbd1', '#48aaa8', '#765088', '#26314b'][(seed >>> 24) % 4], i % 64 * 2, Math.floor(i / 64) * 2, 2, 2); }
@@ -315,6 +339,7 @@ export function buildCharacter(ch, project) {
   const a = Object.fromEntries(characterSlots(ch.model).filter(s => s.key !== 'wireframe').map(({ key }) => { const material = buildMaterial(source[key], project); material.name = key; return [key, material]; }));
   g.userData.materials = a;
   g.userData.animation = { limbs: [], wings: [] };
+  if (NEW_CHARACTER_APPEARANCE[ch.model]) return buildNewCharacter(ch, a);
   if (ch.model === 'cob') {
     part(g, new THREE.CylinderGeometry(.27, .57, .85, 8), a.cloth, [0, .85, 0]);
     const head = new THREE.Group(); head.position.y = 1.7; head.scale.setScalar(ch.headScale); g.add(head);
@@ -368,8 +393,8 @@ export function buildCharacter(ch, project) {
     const head = new THREE.Group(); head.position.y = height; head.scale.setScalar(ch.headScale); g.add(head);
     box(head, a.head, [0, 0, 0], [.5, .6, .4]);
     for (const sign of [-1, 1]) {
-      const arm = part(g, new THREE.CylinderGeometry(.055, .08, height * .5, 5), a.body, [sign * .5, height * .58, 0]); arm.rotation.z = sign * .14;
-      part(g, new THREE.CylinderGeometry(.075, .09, height * .42, 5), a.body, [sign * .15, height * .21, 0]);
+      const arm = part(g, new THREE.CylinderGeometry(.055, .08, height * .5, 5), a.body, [sign * .5, height * .58, 0]); arm.rotation.z = sign * .14;g.userData.animation.limbs.push(arm);
+      g.userData.animation.limbs.push(part(g, new THREE.CylinderGeometry(.075, .09, height * .42, 5), a.body, [sign * .15, height * .21, 0]));
     }
     if (ch.model === 'cobaia') {
       part(head, new THREE.PlaneGeometry(.45, .5), a.face, [0, 0, -.21]).rotation.y = Math.PI;
@@ -529,7 +554,7 @@ function overlapsFootprint(e, p, radius) {
 }
 function rampHeight(e, localZ) { return e.position[1] + e.size[1] * (.5 - clamp(localZ / e.size[2], -.5, .5)); }
 export function characterRadius(character, size = [1, 1, 1]) {
-  const r = { cob: .62, kone: .72, boxjaw: .72, eros: .56, sysadmin: .34, cobaia: .4 }[character.model] || .62;
+  const r = characterDefinition(character.model).radius;
   return r * Math.max(size[0], size[2]) * Math.max(1, character.headScale || 1);
 }
 export function resolveBodyOverlap(entities, position, radius, height) {

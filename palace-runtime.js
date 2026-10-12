@@ -1,23 +1,27 @@
 import * as THREE from 'three';
-import { buildCharacter, disposeObject, groundAt, isBlocked, characterRadius, resolveBodyOverlap, inventoryItem, clamp } from './palace-engine.js';
+import { disposeObject, groundAt, isBlocked, characterDefinition, resolveBodyOverlap, inventoryItem, clamp } from './palace-engine.js';
+import { resolveAvatar, prepareAvatar } from './palace-avatar.js';
 import { PlayerMotion } from './player-motion.js';
 import { Inventory, InventoryPanel } from './inventory.js';
 import { WindowPanel, windowState, orientSystemWindow, windowControlAt, applyWindowControl } from './palace-windows.js';
 
 export class PlaySession {
-  constructor({ scene, camera, renderer, project, roots, toast, showDialogue }) {
+  constructor({ scene, camera, renderer, project, roots, toast, showDialogue, mode = 'editor', onCheckpoint = null }) {
+    this.mode=mode;this.onCheckpoint=onCheckpoint;
     this.scene = scene; this.camera = camera; this.renderer = renderer; this.project = project; this.roots = roots; this.toast = toast; this.showDialogue = showDialogue;
     this.entities = project.entities; this.keys = new Set(); this.collected = new Set(); this.disabled = new Set(); this.health = 6; this.noise = 0; this.invulnerable = 3; this.time = 0; this.yaw = 0; this.pitch = .18; this.velocity = 0; this.near = null; this.paused = false; this.won = false; this.damageOpacity = 0; this.bannerTime = 0;
-    this.spawn = this.entities.find(e => e.visible && (e.type === 'spawn' || e.type === 'character' && e.character.role === 'player'));
-    if (!this.spawn) throw new Error('Coloque uma Entrada / jogador no mapa antes de testar.');
-    if (!Number.isFinite(groundAt(this.entities, this.spawn.position[0], this.spawn.position[2], this.spawn.position[1] + 1))) throw new Error('A entrada está fora do piso. Posicione um piso debaixo do jogador.');
+    const descriptor = resolveAvatar(project); this.controlledSourceId = descriptor.source.id; this.avatarLabel = descriptor.label;
+    const roofs = new Set(project.generation?.roofIds || []), surfaces = this.entities.filter(e => !roofs.has(e.id));
+    const position = new THREE.Vector3(...descriptor.entry.position), floor = groundAt(surfaces, position.x, position.z, position.y + 1);
+    if (!Number.isFinite(floor)) throw new Error('A entrada está fora do piso. Posicione um piso debaixo do jogador.'); position.y = floor;
+    const prepared = prepareAvatar(project, descriptor, position); this.metrics = prepared;
+    this.spawn = { ...descriptor.entry, name: descriptor.label, character: descriptor.character, size: prepared.size };
     this.maxHealth = this.spawn.character.maxHealth || 6; this.health = this.maxHealth;
     this.total = this.entities.filter(e => e.type === 'disk' && e.visible).length;
-    this.player = buildCharacter(this.spawn.character, project); this.player.position.fromArray(this.spawn.position); this.scene.add(this.player);
+    this.player = prepared.root; this.player.position.copy(position); this.scene.add(this.player);
     this.player.rotation.y = this.spawn.rotation; this.player.scale.fromArray(this.spawn.size);
-    const bounds = new THREE.Box3().setFromObject(this.player);
-    this.motion = new PlayerMotion({ height: bounds.max.y - this.player.position.y, jumpSpeed: this.spawn.character.jumpSpeed });
-    this.radius = characterRadius(this.spawn.character, this.spawn.size); this.lastSafePosition = this.player.position.clone();
+    this.motion = new PlayerMotion({ height: prepared.height, jumpSpeed: this.spawn.character.jumpSpeed });
+    this.radius = prepared.radius; this.lastSafePosition = this.player.position.clone();
     if (isBlocked(this.entities, ...this.player.position.toArray(), this.radius, this.motion.height)) {
       if (!isBlocked(this.entities, ...this.player.position.toArray(), this.radius, this.motion.standingHeight * .48)) { this.motion.crouched = true; this.player.scale.y *= .48; }
       else {
@@ -30,6 +34,7 @@ export class PlaySession {
     Object.defineProperty(this, 'velocity', { get: () => this.motion.velocity, set: v => this.motion.velocity = v });
     this.inventory = new Inventory();
     this.inventoryPanel = new InventoryPanel({ parent: renderer.domElement.parentElement, inventory: this.inventory, onClose: () => { this.paused = false; this.capture(); }, onUse: item => this.useItem(item) });
+    this.inventoryPanel.setOwner(this.avatarLabel);
     this.windows = new Map(this.entities.filter(e => e.type === 'window').map(e => [e.id, windowState(e.window)])); this.activeWindow = null;
     this.windowPanel = new WindowPanel({ parent: renderer.domElement.parentElement, onControl: control => this.controlWindow(this.activeWindow, control), onDismiss: () => { this.activeWindow = null; this.paused = false; this.capture(); } });
     this.yaw = this.spawn.rotation;
@@ -38,19 +43,19 @@ export class PlaySession {
       const poses = []; root.traverse(o => poses.push({ object: o, position: o.position.clone(), rotation: o.rotation.clone(), scale: o.scale.clone(), visible: o.visible }));
       this.savedTransforms.set(id, { pos: root.position.clone(), rot: root.rotation.clone(), visible: root.visible, poses });
       const e = this.entities.find(e => e.id === id);
-      if (e.type === 'spawn' || e.type === 'character' && e.character.role === 'player') root.visible = false;
+      if (e.type === 'spawn' || e.id === this.controlledSourceId) root.visible = false;
       root.traverse(o => { if (o.userData.editorOnly) o.visible = false; });
     }
     this.actors = new Map(); this.targetActor = null; this.pulseCooldown = 0;
     const labelLayer = document.getElementById('actorLabels'); labelLayer.replaceChildren();
-    for (const e of this.entities.filter(e => e.visible && e.type === 'character' && e.character.role !== 'player')) {
+    for (const e of this.entities.filter(e => e.visible && e.type === 'character' && e.id !== this.controlledSourceId)) {
       const root = roots.get(e.id), label = document.createElement('div'); label.className = 'actor-label';
       const name = document.createElement('span'); name.textContent = e.name; label.append(name);
       const value = document.createElement('small'), track = document.createElement('div'), fill = document.createElement('i'); track.append(fill); label.append(value, track); labelLayer.append(label);
       const bounds = new THREE.Box3().setFromObject(root);
       this.actors.set(e.id, { entity: e, root, health: e.character.maxHealth || 6, maxHealth: e.character.maxHealth || 6, alive: true, home: root.position.clone(), target: root.position.clone(), wait: 0, phase: this.actors.size * 1.7, label, value, fill, labelHeight: bounds.max.y - root.position.y + .4 });
     }
-    this.enemies = this.entities.filter(e => e.visible && e.type === 'character' && e.character.role === 'enemy').map(e => ({ entity: e, root: roots.get(e.id), active: false, cooldown: 3, attack: 0, looking: 0, last: new THREE.Vector3(...e.position) }));
+    this.enemies = this.entities.filter(e => e.visible && e.type === 'character' && e.id !== this.controlledSourceId && e.character.role === 'enemy').map(e => ({ entity: e, root: roots.get(e.id), active: false, cooldown: 3, attack: 0, looking: 0, last: new THREE.Vector3(...e.position) }));
     this.checkpoint = { position: this.player.position.clone(), collected: new Set(), disabled: new Set(), actors: this.actorSnapshot(), inventory: [], crouched: this.motion.crouched, windows: structuredClone(this.windows) };
     this.collisionMeshes = this.entities.filter(e => e.visible && e.collision && ['floor', 'ramp', 'wall', 'box', 'screen', 'exit', 'window'].includes(e.type)).flatMap(e => {
       const meshes = []; roots.get(e.id)?.traverse(o => { if (o.isMesh) meshes.push(o); }); return meshes;
@@ -58,10 +63,27 @@ export class PlaySession {
     this.ray = new THREE.Raycaster(); this.scene.updateMatrixWorld(true);
     this.cameraUpdate(1, true); this.updateHud();
     document.getElementById('runtimeObjective').textContent = this.total ? 'Recupere as memórias e encontre o terminal.' : 'Explore o mapa e encontre o terminal.';
-    this.toast('TESTE INICIADO — ESC volta à edição. As alterações do mapa ficam preservadas.');
+    this.toast(mode==='play'?'PROJETO INICIADO — ESC pausa, I inventário e V personagem.':'TESTE INICIADO — ESC volta à edição. As alterações do mapa ficam preservadas.');
   }
   capture() {
     try { const p = this.renderer.domElement.requestPointerLock(); p?.catch?.(() => this.toast('Arraste com o mouse para girar a câmera.')); } catch { /* drag camera is supported */ }
+  }
+  switchAvatar() {
+    let next;
+    try {
+      const descriptor = resolveAvatar(this.project), prepared = prepareAvatar(this.project, descriptor, this.player.position); next = prepared.root;
+      const position = this.player.position.clone(), entities = this.activeEntities();
+      if (isBlocked(entities, ...position.toArray(), prepared.radius, prepared.height)) {
+        const safe = resolveBodyOverlap(entities, position, prepared.radius, prepared.height); if (!safe) throw new Error('Não há espaço para trocar de personagem aqui. Afaste-se dos obstáculos.'); position.set(safe.x,safe.y,safe.z);
+      }
+      const ratio = this.health / this.maxHealth, velocity = this.motion.velocity, rotation = this.player.rotation.y;
+      this.keys.clear();
+      disposeObject(this.player); this.player = next; this.player.position.copy(position); this.player.rotation.y = rotation;
+      this.spawn = { ...descriptor.entry, name: descriptor.label, character: descriptor.character, size: prepared.size }; this.avatarLabel = descriptor.label;
+      this.metrics = prepared; this.radius = prepared.radius; this.maxHealth = descriptor.character.maxHealth; this.health = Math.max(1,Math.ceil(ratio*this.maxHealth));
+      this.motion = new PlayerMotion({height:prepared.height,jumpSpeed:descriptor.character.jumpSpeed}); this.motion.velocity=velocity; this.scene.add(this.player); this.lastSafePosition.copy(position);
+      this.inventoryPanel.setOwner(this.avatarLabel); this.updateHud(); this.cameraUpdate(1,true); this.toast('PROTAGONISTA: '+this.avatarLabel+' — inventário e progresso preservados.'); return true;
+    } catch(e) { if(next)disposeObject(next);this.toast(e.message);return false; }
   }
   activeEntities() {
     return this.entities.filter(e => !this.collected.has(e.id) && !this.windows.get(e.id)?.closed).map(e => {
@@ -85,6 +107,19 @@ export class PlaySession {
   }
   saveCheckpoint() {
     this.checkpoint = { position: this.player.position.clone(), collected: new Set(this.collected), disabled: new Set(this.disabled), actors: this.actorSnapshot(), inventory: this.inventory.snapshot(), crouched: this.motion.crouched, windows: structuredClone(this.windows) };
+    this.onCheckpoint?.(this.serializeCheckpoint());
+  }
+  serializeCheckpoint() {
+    const c=this.checkpoint;return {version:1,position:c.position.toArray(),collected:[...c.collected],disabled:[...c.disabled],inventory:structuredClone(c.inventory),crouched:c.crouched,actors:[...c.actors].map(([id,a])=>[id,{health:a.health,position:a.position.toArray(),rotation:[a.rotation.x,a.rotation.y,a.rotation.z]}]),windows:[...c.windows].map(([id,s])=>[id,structuredClone(s)])};
+  }
+  restoreCheckpoint(data) {
+    const vector=value=>Array.isArray(value)&&value.length===3&&value.every(n=>Number.isFinite(n)&&Math.abs(n)<=500);
+    if(data?.version!==1||!vector(data.position))return false;
+    const roofs=new Set(this.project.generation?.roofIds||[]);if(!Number.isFinite(groundAt(this.entities.filter(e=>!roofs.has(e.id)),data.position[0],data.position[2],data.position[1]+.1,this.radius)))return false;
+    const c=this.checkpoint;c.position.fromArray(data.position);c.collected=new Set(Array.isArray(data.collected)?data.collected.filter(id=>this.entities.some(e=>e.id===id&&e.pickup.enabled)):[]);c.disabled=new Set(Array.isArray(data.disabled)?data.disabled.filter(id=>this.entities.some(e=>e.id===id)):[]);c.inventory=Array.isArray(data.inventory)?structuredClone(data.inventory):[];c.crouched=!!data.crouched;
+    for(const pair of Array.isArray(data.actors)?data.actors:[]){const [id,value]=pair||[],actor=this.actors.get(id);if(actor&&value&&vector(value.position)&&vector(value.rotation))c.actors.set(id,{health:clamp(Number(value.health)||0,0,actor.maxHealth),position:new THREE.Vector3(...value.position),rotation:new THREE.Euler(...value.rotation)});}
+    for(const pair of Array.isArray(data.windows)?data.windows:[]){const [id,value]=pair||[];if(c.windows.has(id)&&value&&typeof value==='object'){const state=c.windows.get(id);state.closed=!!value.closed;state.minimized=!!value.minimized;state.maximized=!!value.maximized;state.progress=clamp(Number(value.progress)||0,0,100);state.progressPaused=!!value.progressPaused;state.tab=clamp(Number(value.tab)||0,0,5);if(Array.isArray(value.fields))state.fields=value.fields.slice(0,8).map(v=>String(v).slice(0,200));}}
+    this.rollback();return true;
   }
   updateWindows(dt) {
     for (const e of this.entities.filter(e => e.type === 'window')) {
@@ -159,8 +194,8 @@ export class PlaySession {
     return !this.ray.intersectObjects(this.collisionMeshes.filter(m => m.visible && m.parent.visible && m.userData.entityId !== ignoreId), false).some(h => h.distance < distance - .2);
   }
   cameraUpdate(dt, immediate = false) {
-    const target = this.player.position.clone().add(new THREE.Vector3(0, 1.4 * this.spawn.size[1] * (this.motion.crouched ? .55 : 1), 0));
-    const dist = 5.7, offset = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch) * dist, 1.1 + Math.sin(this.pitch) * dist, Math.cos(this.yaw) * Math.cos(this.pitch) * dist);
+    const target = this.player.position.clone().add(new THREE.Vector3(0, this.metrics.cameraHeight * (this.motion.crouched ? .55 : 1), 0));
+    const dist = this.metrics.cameraDistance, offset = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch) * dist, this.metrics.height*.38 + Math.sin(this.pitch) * dist, Math.cos(this.yaw) * Math.cos(this.pitch) * dist);
     this.scene.updateMatrixWorld(true); this.ray.set(target, offset.clone().normalize()); this.ray.far = offset.length();
     const hits = this.ray.intersectObjects(this.collisionMeshes.filter(m => m.visible && m.parent.visible), false);
     if (hits.length) offset.setLength(Math.max(.55, hits[0].distance - .25));
@@ -171,6 +206,7 @@ export class PlaySession {
   }
   updateHud() {
     const $ = id => document.getElementById(id);
+    $('playHud').querySelector('.eyebrow').textContent=this.avatarLabel+(this.mode==='play'?' / JOGO':' / TESTE DE MAPA');
     const hearts = this.health / this.maxHealth * 6;
     $('runtimeHearts').textContent = [0, 1, 2].map(i => hearts >= (i + 1) * 2 ? '♥' : hearts > i * 2 ? '◐' : '♡').join('') + ` ${this.health}/${this.maxHealth}`;
     $('runtimeDisks').textContent = `${this.diskCount()} / ${this.total}`;
@@ -217,7 +253,7 @@ export class PlaySession {
     } else if (e.type === 'screen') { this.disabled.add(e.id); this.toast(e.message || 'WATCHER OFFLINE'); }
     else if (e.type === 'exit') {
       if (this.diskCount() < this.total) this.toast(`Ainda faltam ${this.total - this.diskCount()} fragmentos de memória.`);
-      else { this.won = true; this.banner(e.message || 'COB_01.EXE successfully restored. Explore ou pressione ESC para voltar ao editor.', 8); }
+      else { this.won = true; this.banner(e.message || this.avatarLabel+' / processo restaurado. ESC volta ao editor.', 8); }
     } else if (e.type === 'character') {
       this.paused = true; this.keys.clear(); if (document.pointerLockElement) document.exitPointerLock();
       this.showDialogue(e.name, e.character.dialogue || 'O registro está vazio.', () => { this.paused = false; this.capture(); });
@@ -228,7 +264,7 @@ export class PlaySession {
     this.near = null; let closest = 2.6;
     for (const e of this.entities) {
       if (!e.visible || (!e.pickup.enabled && !['capsule', 'screen', 'exit', 'character', 'window'].includes(e.type)) || this.collected.has(e.id) || this.disabled.has(e.id) || this.windows.get(e.id)?.closed) continue;
-      if (e.type === 'character' && ['enemy', 'player'].includes(e.character.role)) continue;
+      if (e.id===this.controlledSourceId || e.type === 'character' && e.character.role==='enemy') continue;
       if (e.type === 'character' && !this.actors.get(e.id)?.alive) continue;
       const pos = e.type === 'character' || e.type === 'window' ? this.roots.get(e.id).position.clone() : new THREE.Vector3(...e.position);
       const d = e.type === 'window' ? new THREE.Box3().setFromObject(this.roots.get(e.id)).distanceToPoint(this.player.position.clone().add(new THREE.Vector3(0, 1.4, 0))) : pos.distanceTo(this.player.position);
@@ -262,7 +298,8 @@ export class PlaySession {
     if (moving) { const angle = Math.atan2(-dx, -dz), diff = Math.atan2(Math.sin(angle - this.player.rotation.y), Math.cos(angle - this.player.rotation.y)); this.player.rotation.y += diff * Math.min(1, dt * 12); }
     this.noise = clamp(this.noise + dt * (moving && running ? 33 : silent ? -30 : -19), 0, 100);
     this.player.userData.animation?.limbs.forEach((m, i) => m.rotation.x = moving ? Math.sin(this.time * (running ? 14 : 8)) * .4 * (i % 2 ? -1 : 1) : m.rotation.x * .85);
-    this.player.userData.animation?.wings.forEach((m, i) => m.rotation.y = Math.sin(this.time * 9) * .55 * (i ? -1 : 1));
+    this.player.userData.animation?.wings.forEach((m, i) => m.rotation.y = (this.motion.grounded ? .3 : .1) * (i ? -1 : 1) + Math.sin(this.time * 9) * (this.motion.grounded ? .16 : .55) * (i ? -1 : 1));
+    this.player.userData.animation?.clockHands?.forEach((m,i)=>m.rotation.z=-this.time*(i?.15:.55));
   }
   actorSnapshot() {
     return new Map([...this.actors].map(([id, actor]) => [id, { health: actor.health, position: actor.root.position.clone(), rotation: actor.root.rotation.clone() }]));
@@ -319,6 +356,7 @@ export class PlaySession {
         model.position.y = ch.idleAnimation ? Math.sin(this.time * 2.1 + actor.phase) * .018 : 0;
         model.userData.animation?.limbs.forEach((limb, i) => limb.rotation.x = moving ? Math.sin(this.time * 8) * .35 * (i % 2 ? -1 : 1) : ch.idleAnimation ? Math.sin(this.time * 1.6 + actor.phase + i) * .035 : 0);
         model.userData.animation?.wings.forEach((wing, i) => wing.rotation.y = ch.idleAnimation ? Math.sin(this.time * 5) * .25 * (i ? -1 : 1) : 0);
+        model.userData.animation?.clockHands?.forEach((hand,i)=>hand.rotation.z=-this.time*(i?.15:.55));
       }
     }
   }
@@ -361,7 +399,7 @@ export class PlaySession {
         if (enemy.looking > 3.2) { this.damage(`${e.name} — evite encarar o núcleo ciano.`, e.character.damage); enemy.looking = 0; }
         continue;
       }
-      const flying = e.character.model === 'eros';
+      const flying = !!characterDefinition(e.character.model).flying;
       const visible = this.lineOfSight(eye, target);
       if (!enemy.active && enemy.cooldown <= 0 && dist < e.character.range && (this.noise > 45 || !flying && dist < 7 && visible)) { enemy.active = true; enemy.last.copy(p); enemy.attack = 0; }
       if (enemy.active && dist < e.character.range && visible) enemy.last.copy(p);

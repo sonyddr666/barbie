@@ -8,38 +8,33 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="inventory.css">
+  <link rel="stylesheet" href="system-windows.css">
+  <link rel="stylesheet" href="play.css">
+  <script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
 </head>
 <body>
-  <div id="game"></div>
-  <div id="crt" aria-hidden="true"></div>
-  <div id="damage" aria-hidden="true"></div>
-  <header id="hud" class="hidden">
-    <div class="identity"><span class="eyebrow">HYPER-SLEEP / SUBJECT 01</span><div id="hearts" aria-label="Integridade"></div><span id="integrity">INTEGRIDADE ESTÁVEL</span></div>
-    <div class="sector"><span class="eyebrow">THE PALACE</span><span id="zone">ÁTRIO DE BUFFER</span><span class="build">SECTOR 01 · EXPLORABLE BUILD</span></div>
-  </header>
-  <aside id="mission" class="hidden"><span class="eyebrow">RECONSTRUIR A SAÍDA</span><div>Recupere os disquetes <b id="count">0 / 3</b></div><p id="objective">Procure K-One perto da água.</p><div class="noise-label"><span>RUÍDO DO PROCESSO</span><span id="noiseState">SILENCIOSO</span></div><div class="meter"><i id="noiseBar"></i></div></aside>
-  <div id="hint" class="hidden"><kbd>E</kbd><span></span></div>
-  <div id="toast" role="status"></div>
-  <div id="subtitle"></div>
-  <div id="bottom" class="hidden"><span><kbd>WASD</kbd> mover <kbd>ESPAÇO</kbd> pular <kbd>CTRL / C</kbd> agachar <kbd>SHIFT</kbd> correr <kbd>E</kbd> pegar</span><span><kbd>I</kbd> inventário <kbd>M</kbd> mapa <kbd>ESC</kbd> pausa</span></div>
-  <div id="mapPanel" class="hidden"><span class="eyebrow">BUFFER TOPOLOGY // TABULA 01</span><h2>Mapa do setor</h2><canvas id="map" width="360" height="420"></canvas><p><span class="dot pink"></span> você <span class="dot gold"></span> memória <span class="dot cyan"></span> checkpoint</p><small>K-One conhece uma passagem que o mapa esqueceu.</small></div>
+  <div id="game"><header id="playHud" class="hidden"><div><span class="eyebrow">HYPER-SLEEP / JOGO</span><div id="runtimeHearts"></div><span id="runtimeNoise">PROCESSO SILENCIOSO</span></div><div class="runtime-mission"><span id="runtimeObjective"></span><b id="runtimeDisks">0 / 0</b><span id="activeProjectName"></span></div></header><div id="actorLabels"></div><div id="runtimeActorInfo" class="hidden"></div><div id="runtimeHint" class="hidden"></div><div id="runtimeDamage"></div><div id="runtimeBanner" class="hidden"></div><div id="bottom" class="hidden"><span>WASD mover · ESPAÇO pular · CTRL/C agachar · SHIFT correr · E interagir</span><span>I inventário · V personagem · M mapa · ESC pausa</span></div><div id="toast" role="status"></div><div id="mapPanel" class="hidden"><span class="eyebrow">TOPOLOGIA DO PROJETO</span><h2>Mapa do setor</h2><select id="mapLevel" aria-label="Andar do mapa"></select><canvas id="map" width="360" height="420"></canvas><p>● jogador · ● saída · ● memórias</p></div></div>
   <section id="overlay">
     <div class="menu-art"></div>
     <div class="menu-content">
       <div class="bootline"><span class="status-dot"></span> CONNECTION ESTABLISHED / SERVER 1998</div>
       <span class="menu-kicker">UM LUGAR PARA TUDO QUE FOI ESQUECIDO.</span>
       <h1>HYPER<span>—</span>SLEEP</h1><div class="palace-title">THE PALACE</div>
-      <p id="menuDescription">Você é Cob-01. Seu backup caiu em um servidor que nunca desligou.<br>Recupere três fragmentos de memória. Encontre uma saída.<br>E, se ouvir asas, diminua o passo.</p>
-      <button id="play">DESPERTAR NO BUFFER <span>↗</span></button>
+      <p id="menuDescription">Carregando o projeto salvo no editor...</p>
+      <div id="projectDetails"></div>
+      <button id="play" disabled>CARREGANDO PROJETO <span>↗</span></button>
+      <label class="game-avatar-label">PERSONAGEM PRINCIPAL<select id="gameAvatar" aria-label="Personagem principal"></select></label>
+      <div class="project-actions"><button id="reloadProject">Recarregar projeto do editor</button><button id="openProjectFile">Abrir projeto JSON</button><button id="restartProject" class="hidden">Reiniciar exploração</button></div><div id="projectUpdate" class="hidden" role="status">O editor salvou uma versão nova. Recarregue o projeto para jogar as alterações.</div>
       <div class="menu-controls"><span>WASD · MOVIMENTO</span><span>MOUSE · CÂMERA</span><span>E · INTERAÇÃO</span></div>
       <a class="editor-link" href="editor.html">◈ ABRIR PALACE ENGINE / EDITOR DE MAPAS ↗</a>
       <div id="continueInfo"></div>
-      <div class="menu-footer"><span>COB_01.EXE / INTEGRIDADE 3.0</span><span>PRIMEIRA VERSÃO JOGÁVEL</span></div>
+      <div class="menu-footer"><span>PALACE ENGINE / PROJETO COMPARTILHADO</span><span>MAPA ATUAL DO EDITOR</span></div>
     </div>
   </section>
   <section id="dialog" class="hidden" role="dialog" aria-modal="true"><div class="window-title"><span id="dialogTitle">MEMORY PROCESS</span><span>×</span></div><div class="window-body"><div id="portrait">◈</div><p id="dialogText"></p></div><div id="dialogButtons"></div></section>
   <div id="loading">INICIALIZANDO GEOMETRIA...</div>
-  <script type="module" src="game.js"></script>
+  <input id="playProjectFile" type="file" accept="application/json,.json" class="hidden">
+  <script type="module" src="play.js"></script>
   <script>if(location.protocol==='file:'){document.getElementById('loading').textContent='Abra JOGAR.cmd para iniciar o jogo no navegador.'}</script>
 </body>
 </html>
